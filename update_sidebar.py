@@ -36,7 +36,7 @@ if __name__ == "__main__":
     login()
     print("Login successful!")
     
-    schedule.every(10).seconds.do(update_sidebar)
+    schedule.every(30).seconds.do(update_sidebar)
 
     while True:
         schedule.run_pending()
