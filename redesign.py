@@ -3,13 +3,14 @@ import praw
 import twitch
 
 MAX_STATUS_LENGTH = 20
-MAX_NUM_STREAMS = 5
+MAX_NUM_STREAMS = 10
 
 def get_top_channels(sub):
     text = "Twitch | 👁 | Streamer \n"
     text += ":- | :- | :- \n"
 
     channels = twitch.get_top_channels_raw(sub, MAX_NUM_STREAMS)
+    print([channel["name"] for channel in channels])
     if len(channels) == 0:
         return ""
 
