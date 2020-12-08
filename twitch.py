@@ -1,29 +1,18 @@
-from datetime import datetime
-import requests
-import os
-
 import configparser
+import os
+from datetime import datetime
+
+import requests
 
 config = configparser.ConfigParser()
 config.read("config.txt")
 
-clientID = config.get("config", "TWITCH_CLIENT_ID")
-clientSecret = config.get("config", "TWITCH_SECRET_ID")
+clientID = config["twitch.com"]["TWITCH_CLIENT_ID"]
+clientSecret = config["twitch.com"]["TWITCH_SECRET_ID"]
 
-def is_ascii(text):
-    if isinstance(text, unicode):
-        try:
-            text.encode('ascii')
-        except UnicodeEncodeError:
-            return False
-    else:
-        try:
-            text.decode('ascii')
-        except UnicodeDecodeError:
-            return False
-    return True
+def filter_channel(stream) -> bool:
+    "Check if a stream should be skipped for any reason."
 
-def filter_channel(stream):
     title = stream['title'].lower()
     if 'arcana' in title or 'free' in title:
         return True
@@ -44,7 +33,9 @@ def filter_channel(stream):
     return any((channel.startswith(username) or username in title)
                and channel != username for username in impersonated)
 
-def _get_top_channels_raw(url):
+def _get_top_channels_raw(url, maxLength=None):
+    "Get top channels based on URL"
+
     oauthURL = 'https://id.twitch.tv/oauth2/token'
     data = {'client_id': clientID, 'client_secret': clientSecret, 'grant_type': 'client_credentials'}
     r = requests.post(oauthURL, data=data)
@@ -56,18 +47,18 @@ def _get_top_channels_raw(url):
 
     r = requests.get(url, headers=headers)
 
-    dota_channels = r.json()
-    top_dota_channels = []
+    channels = r.json()
+    top_channels = []
 
-    if 'data' not in dota_channels:
-        return top_dota_channels
+    if 'data' not in channels:
+        return top_channels
 
-    for stream in dota_channels['data']:
-        if len(top_dota_channels) >= 5:
+    for stream in channels['data']:
+        if maxLength and len(top_channels) >= maxLength:
             break
 
-        if filter_channel(stream):
-            continue
+        # if filter_channel(stream):
+        #     continue
 
         viewers = stream["viewer_count"]
         status = stream["title"]
@@ -87,33 +78,14 @@ def _get_top_channels_raw(url):
 
         sidebar_channels = {"name": name, "status": status,
                             "viewers": viewers, "url": url}
-        top_dota_channels.append(sidebar_channels)
+        top_channels.append(sidebar_channels)
 
-    return top_dota_channels
+    return top_channels
 
-
-def _get_top_channels(url):
-    updated_matches = ""
-    for channel in _get_top_channels_raw(url):
-        updated_matches += ">>>#[" + channel["status"] + \
-            "](" + channel["url"] + ")\n"
-        updated_matches += ">##" + "\n"
-        updated_matches += ">###" + \
-            str(channel["viewers"]) + " @ " + channel["name"] + "\n"
-        updated_matches += "\n" + ">>[](#separator)" + "\n\n"
-
-    return updated_matches
-
-def get_top_artifact_channels():
-    return _get_top_channels('https://api.twitch.tv/helix/streams?game_id=16937&language=en')
-
-def get_top_dota_channels():
-    return _get_top_channels('https://api.twitch.tv/helix/streams?game_id=29595&language=en')
-
-def get_top_channels_raw(sub):
-    if sub.display_name.lower() == "dota2":
-        return _get_top_channels_raw('https://api.twitch.tv/helix/streams?game_id=29595&language=en')
-    elif sub.display_name.lower() == "artifact":
-        return _get_top_channels_raw('https://api.twitch.tv/helix/streams?game_id=16937&language=en')
-
-    return []
+def get_top_channels_raw(sub, maxLength=None):
+    "Returns list of channels based on subreddit."
+    
+    try:
+        return _get_top_channels_raw(config['game-urls'][sub.display_name.lower()], maxLength)
+    except Exception:
+        return []
