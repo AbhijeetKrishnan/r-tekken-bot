@@ -4,11 +4,8 @@ from datetime import datetime
 
 import requests
 
-config = configparser.ConfigParser()
-config.read("config.txt")
-
-clientID = config["twitch.com"]["TWITCH_CLIENT_ID"]
-clientSecret = config["twitch.com"]["TWITCH_SECRET_ID"]
+clientID = os.environ.get("TWITCH_CLIENT_ID")
+clientSecret = os.environ.get("TWITCH_SECRET_ID")
 
 def filter_channel(stream) -> bool:
     "Check if a stream should be skipped for any reason."

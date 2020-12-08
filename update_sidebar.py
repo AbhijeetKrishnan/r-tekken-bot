@@ -1,4 +1,3 @@
-import configparser
 import datetime
 import os
 import re
@@ -12,25 +11,17 @@ import schedule
 import redesign
 import twitch
 
-config = configparser.ConfigParser()
-config.read("config.txt")
-
 r = None
-password = None
 
 def login():
     global r
-    global password
-    global config
 
-    if password is None:
-        password = sys.argv[1]
     r = praw.Reddit(
-        client_id=config["reddit.com"]["CLIENT_ID"],
-        client_secret=config["reddit.com"]["CLIENT_SECRET"],
-        password=password,
+        client_id=os.environ.get("CLIENT_ID"),
+        client_secret=os.environ.get("CLIENT_SECRET"),
+        password=os.environ.get("PASSWORD"),
         user_agent="r/Tekken Livestream Sidebar Bot by u/pisciatore",
-        username=config["reddit.com"]["BOT_USERNAME"]
+        username=os.environ.get("BOT_USERNAME")
     )
 
 def update_sidebar():
