@@ -1,17 +1,20 @@
 brotlipy==0.7.0
 certifi==2020.12.5
-cffi @ file:///tmp/build/80754af9/cffi_1606255122322/work
-chardet @ file:///tmp/build/80754af9/chardet_1605303192865/work
-cryptography @ file:///tmp/build/80754af9/cryptography_1605544451139/work
-idna @ file:///tmp/build/80754af9/idna_1593446292537/work
+cffi==1.14.4
+chardet==3.0.4
+cryptography==3.2.1
+idna==2.10
+pip==20.3.1
 praw==7.1.0
 prawcore==1.5.0
-pycparser @ file:///tmp/build/80754af9/pycparser_1594388511720/work
-pyOpenSSL @ file:///tmp/build/80754af9/pyopenssl_1606517880428/work
-PySocks @ file:///tmp/build/80754af9/pysocks_1605305812635/work
-requests @ file:///tmp/build/80754af9/requests_1606691187061/work
+pycparser==2.20
+pyOpenSSL==20.0.0
+PySocks==1.7.1
+requests==2.25.0
 schedule==0.6.0
-six @ file:///tmp/build/80754af9/six_1605205306277/work
+setuptools==51.0.0.post20201207
+six==1.15.0
 update-checker==0.18.0
-urllib3 @ file:///tmp/build/80754af9/urllib3_1603305693037/work
+urllib3==1.25.11
 websocket-client==0.57.0
+wheel==0.36.1
