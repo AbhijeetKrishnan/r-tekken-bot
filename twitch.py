@@ -18,7 +18,6 @@ def _get_top_channels_raw(game_id: str, maxLength: int=5):
     except requests.exceptions.HTTPError as err:
         raise SystemExit(err)
     access_token = r.json()['access_token']
-    print(access_token)
 
     headers = {'Client-ID': clientID, 'Authorization': 'Bearer ' + access_token}
 
