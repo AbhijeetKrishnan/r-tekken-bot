@@ -28,7 +28,7 @@ def login():
     r = praw.Reddit(
         client_id=config["reddit.com"]["CLIENT_ID"],
         client_secret=config["reddit.com"]["CLIENT_SECRET"],
-        password=config["reddit.com"]["PASSWORD"],
+        password=password,
         user_agent="r/Tekken Livestream Sidebar Bot by u/pisciatore",
         username=config["reddit.com"]["BOT_USERNAME"]
     )
