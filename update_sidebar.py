@@ -23,6 +23,11 @@ def login():
         user_agent="r/Tekken Livestream Sidebar Bot by u/pisciatore",
         username=os.environ.get("BOT_USERNAME")
     )
+    try:
+        print(r.user.me())
+        print('Login successful!')
+    except Exception:
+        print('Login unsuccessful')
 
 def update_sidebar():
     print(time.ctime())
@@ -34,7 +39,6 @@ def update_sidebar():
 if __name__ == "__main__":
     print("Attempting to login...")
     login()
-    print("Login successful!")
     
     schedule.every(30).seconds.do(update_sidebar)
 

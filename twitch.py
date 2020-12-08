@@ -7,7 +7,7 @@ import requests
 clientID = os.environ.get("TWITCH_CLIENT_ID")
 clientSecret = os.environ.get("TWITCH_SECRET_ID")
 
-def _get_top_channels_raw(game_id, maxLength=5):
+def _get_top_channels_raw(game_id: str, maxLength: int=5):
     "Get top channels based on game_id"
 
     oauthURL = 'https://id.twitch.tv/oauth2/token'
@@ -68,6 +68,7 @@ def _get_top_channels_raw(game_id, maxLength=5):
             "viewers": viewers, 
             "url": streamer_url
         }
+        print(sidebar_channel)
         top_channels.append(sidebar_channel)
 
     return top_channels
