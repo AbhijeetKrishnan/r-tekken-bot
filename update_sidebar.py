@@ -32,10 +32,11 @@ def update_sidebar():
     redesign.update_sidebar(tekken)
 
 if __name__ == "__main__":
-    print("hello")
+    print("Attempting to login...")
     login()
-
-    schedule.every(30).seconds.do(update_sidebar)
+    print("Login successful!")
+    
+    schedule.every(10).seconds.do(update_sidebar)
 
     while True:
         schedule.run_pending()
