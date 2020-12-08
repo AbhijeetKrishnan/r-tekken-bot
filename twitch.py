@@ -76,6 +76,6 @@ def get_top_channels_raw(sub, maxLength=5):
     "Returns list of channels based on subreddit."
     
     try:
-        return _get_top_channels_raw(config['game-ids'][sub.display_name.lower()], maxLength)
+        return _get_top_channels_raw(os.environ.get(sub.display_name.lower()), maxLength)
     except Exception:
         return []
