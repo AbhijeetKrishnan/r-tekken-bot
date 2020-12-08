@@ -26,6 +26,7 @@ def _get_top_channels_raw(game_id: str, maxLength: int=5):
 
     # Getting top channels based on url
     stream_api_url = f"https://api.twitch.tv/helix/streams?game_id={game_id}&first={maxLength}"
+    print(stream_api_url)
     try:
         r = requests.get(stream_api_url, headers=headers)
         r.raise_for_status()
@@ -45,6 +46,7 @@ def _get_top_channels_raw(game_id: str, maxLength: int=5):
     user_ids = [stream["user_id"] for stream in channels]
     print(user_ids)
     user_api_url = f"https://api.twitch.tv/helix/users?id={'&id='.join(user_ids)}"
+    print(user_api_url)
     try:
         r = requests.get(user_api_url, headers=headers)
         r.raise_for_status()
