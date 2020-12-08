@@ -10,6 +10,7 @@ def get_top_channels(sub):
     text += ":- | :- | :- \n"
 
     channels = twitch.get_top_channels_raw(sub, MAX_NUM_STREAMS)
+    print([channel['name'] for channel in channels])
     if len(channels) == 0:
         return ""
 
