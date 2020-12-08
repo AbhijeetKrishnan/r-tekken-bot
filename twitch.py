@@ -41,6 +41,7 @@ def _get_top_channels_raw(game_id: str, maxLength: int=5):
     # Need to make additional request to user endpoint since user_name is not display name
     # Reference: https://github.com/twitchdev/issues/issues/3
     user_ids = [stream["user_id"] for stream in channels]
+    print(user_ids)
     user_api_url = f"https://api.twitch.tv/helix/users?id={'&id='.join(user_ids)}"
     try:
         r = requests.get(user_api_url, headers=headers)
