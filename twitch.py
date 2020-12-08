@@ -12,7 +12,11 @@ def _get_top_channels_raw(game_id: str, maxLength: int=5):
 
     oauthURL = 'https://id.twitch.tv/oauth2/token'
     data = {'client_id': clientID, 'client_secret': clientSecret, 'grant_type': 'client_credentials'}
-    r = requests.post(oauthURL, data=data)
+    try:
+        r = requests.post(oauthURL, data=data)
+        r.raise_for_status()
+    except requests.exceptions.HTTPError as err:
+        raise SystemExit(err)
     access_token = r.json()['access_token']
 
     headers = {'Client-ID': clientID, 'Authorization': 'Bearer ' + access_token}
@@ -21,7 +25,11 @@ def _get_top_channels_raw(game_id: str, maxLength: int=5):
 
     # Getting top channels based on url
     stream_api_url = f"https://api.twitch.tv/helix/streams?game_id={game_id}&first={maxLength}"
-    r = requests.get(stream_api_url, headers=headers)
+    try:
+        r = requests.get(stream_api_url, headers=headers)
+        r.raise_for_status()
+    except requests.exceptions.HTTPError as err:
+        raise SystemExit(err)
     channels = r.json()
 
     if "data" not in channels:
@@ -34,7 +42,11 @@ def _get_top_channels_raw(game_id: str, maxLength: int=5):
     # Reference: https://github.com/twitchdev/issues/issues/3
     user_ids = [stream["user_id"] for stream in channels]
     user_api_url = f"https://api.twitch.tv/helix/users?id={'&id='.join(user_ids)}"
-    r = requests.get(user_api_url, headers=headers)
+    try:
+        r = requests.get(user_api_url, headers=headers)
+        r.raise_for_status()
+    except requests.exceptions.HTTPError as err:
+        raise SystemExit(err)
     users = r.json()
 
     if "data" not in users:
