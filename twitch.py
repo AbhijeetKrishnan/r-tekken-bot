@@ -77,6 +77,8 @@ def _get_top_channels_raw(game_id: str, maxLength: int=5):
             status = status.replace("\r", '')
         if '\n' in status:
             status = status.replace("\n", '')
+        if '_' in name:
+            name = name.replace('_', '\_')
 
         sidebar_channel = {
             "name": name, 
