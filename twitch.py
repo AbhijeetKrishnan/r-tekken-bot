@@ -1,19 +1,11 @@
-import configparser
 import os
 import traceback
 from datetime import datetime
 
 import requests
 
-config = configparser.ConfigParser()
-if config.read('config.txt'):
-    print('Found config in config.txt')
-    clientID = config['twitch.com']['TWITCH_CLIENT_ID']
-    clientSecret = config['twitch.com']['TWITCH_SECRET_ID']
-else:
-    print('Found config in env')
-    clientID = os.environ.get("TWITCH_CLIENT_ID")
-    clientSecret = os.environ.get("TWITCH_SECRET_ID")
+clientID = os.environ.get("TWITCH_CLIENT_ID")
+clientSecret = os.environ.get("TWITCH_SECRET_ID")
 
 def _get_top_channels_raw(game_id: str, maxLength: int=5):
     "Get top channels based on game_id"
@@ -106,10 +98,7 @@ def get_top_channels_raw(sub, maxLength=5):
     "Returns list of channels based on subreddit."
     
     try:
-        if config.read('config.txt'):
-            game_id = config['game-ids']['tekken']
-        else:
-            game_id = os.environ.get(sub.display_name.lower())
+        game_id = os.environ.get(sub.display_name.lower())
         return _get_top_channels_raw(game_id, maxLength)
     except Exception:
         return []

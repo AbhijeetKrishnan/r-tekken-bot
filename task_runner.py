@@ -1,4 +1,3 @@
-import configparser
 import datetime
 import os
 import re
@@ -18,24 +17,13 @@ r = None
 def login():
     global r
 
-    config = configparser.ConfigParser()
-
-    if config.read("config.txt"):
-        r = praw.Reddit(
-            client_id=config["reddit.com"]["CLIENT_ID"],
-            client_secret=config["reddit.com"]["CLIENT_SECRET"],
-            password=config["reddit.com"]["PASSWORD"],
-            user_agent="u/tekken-bot by u/pisciatore",
-            username=config["reddit.com"]["BOT_USERNAME"]
-        )
-    else:
-        r = praw.Reddit(
-            client_id=os.environ.get("CLIENT_ID"),
-            client_secret=os.environ.get("CLIENT_SECRET"),
-            password=os.environ.get("PASSWORD"),
-            user_agent="u/tekken-bot by u/pisciatore",
-            username=os.environ.get("BOT_USERNAME")
-        )
+    r = praw.Reddit(
+        client_id=os.environ.get("CLIENT_ID"),
+        client_secret=os.environ.get("CLIENT_SECRET"),
+        password=os.environ.get("PASSWORD"),
+        user_agent="u/tekken-bot by u/pisciatore",
+        username=os.environ.get("BOT_USERNAME")
+    )
     try:
         print(r.user.me())
         print('Login successful!')
