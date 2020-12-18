@@ -20,10 +20,12 @@ def _get_top_channels_raw(game_id: str, maxLength: int=5):
     data = {'client_id': clientID, 'client_secret': clientSecret, 'grant_type': 'client_credentials'}
     try:
         r = requests.post(oauthURL, data=data)
-        r.raise_for_status()
     except requests.exceptions.HTTPError as err:
         traceback.print_exc()
         raise SystemExit(err)
+    if r.status_code != requests.codes.ok:
+        print('Received bad request with code', r.status_code)
+        raise SystemExit
     access_token = r.json()['access_token']
 
     headers = {'Client-ID': clientID, 'Authorization': 'Bearer ' + access_token}
