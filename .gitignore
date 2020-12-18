@@ -3,6 +3,7 @@ config.txt
 alreadyseen.json
 env/
 .vscode/
+*.log
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

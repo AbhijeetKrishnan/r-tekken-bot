@@ -2,8 +2,8 @@ import praw
 
 import twitch
 
-MAX_STATUS_LENGTH = 20
-MAX_NUM_STREAMS = 5
+MAX_STATUS_LENGTH = 30 # length of status allowed in livestream table
+MAX_NUM_STREAMS = 5    # number of streams displayed in livestream table
 
 def get_top_channels(sub):
     text = "Twitch | 👁 | Streamer \n"
