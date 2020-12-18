@@ -106,7 +106,7 @@ def get_top_channels_raw(sub, maxLength=5):
     "Returns list of channels based on subreddit."
     
     try:
-        if config:
+        if config.read('config.txt'):
             game_id = config['game-ids']['tekken']
         else:
             game_id = os.environ.get(sub.display_name.lower())
