@@ -1,6 +1,7 @@
-import os
-from datetime import datetime
 import configparser
+import os
+import traceback
+from datetime import datetime
 
 import requests
 
@@ -21,6 +22,7 @@ def _get_top_channels_raw(game_id: str, maxLength: int=5):
         r = requests.post(oauthURL, data=data)
         r.raise_for_status()
     except requests.exceptions.HTTPError as err:
+        traceback.print_exc()
         raise SystemExit(err)
     access_token = r.json()['access_token']
 
