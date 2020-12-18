@@ -5,13 +5,13 @@ from datetime import datetime
 
 import requests
 
-clientID = os.environ.get("TWITCH_CLIENT_ID")
-clientSecret = os.environ.get("TWITCH_SECRET_ID")
-
 config = configparser.ConfigParser()
 if config.read('config.txt'):
     clientID = config['twitch.com']['TWITCH_CLIENT_ID']
     clientSecret = config['twitch.com']['TWITCH_SECRET_ID']
+else:
+    clientID = os.environ.get("TWITCH_CLIENT_ID")
+    clientSecret = os.environ.get("TWITCH_SECRET_ID")
 
 def _get_top_channels_raw(game_id: str, maxLength: int=5):
     "Get top channels based on game_id"
