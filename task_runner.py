@@ -19,9 +19,8 @@ def login():
     global r
 
     config = configparser.ConfigParser()
-    config.read("config.txt")
 
-    if config:
+    if config.read("config.txt"):
         r = praw.Reddit(
             client_id=config["reddit.com"]["CLIENT_ID"],
             client_secret=config["reddit.com"]["CLIENT_SECRET"],
@@ -63,7 +62,7 @@ if __name__ == "__main__":
         print('Exiting application...')
         exit(1)
     
-    schedule.every(5).seconds.do(do_tasks)
+    schedule.every(30).seconds.do(do_tasks)
 
     while True:
         schedule.run_pending()
