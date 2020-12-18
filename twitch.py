@@ -7,9 +7,11 @@ import requests
 
 config = configparser.ConfigParser()
 if config.read('config.txt'):
+    print('Found config in config.txt')
     clientID = config['twitch.com']['TWITCH_CLIENT_ID']
     clientSecret = config['twitch.com']['TWITCH_SECRET_ID']
 else:
+    print('Found config in env')
     clientID = os.environ.get("TWITCH_CLIENT_ID")
     clientSecret = os.environ.get("TWITCH_SECRET_ID")
 
