@@ -9,3 +9,4 @@ six==1.15.0
 update-checker==0.18.0
 urllib3==1.25.11
 websocket-client==0.57.0
+psycopg2==2.8.6

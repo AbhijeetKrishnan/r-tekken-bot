@@ -28,3 +28,25 @@ to them)
 The Tekken Dojo points are logged and displayed in an updating leaderboard in the sidebar. At the
 end of the month, the user with the most Dojo points get the title of Dojo Master for that month,
 which awards a custom flair.
+
+The final script would use PRAW at the end of each day to scan the comments (need to check the max
+amount of comments that can be scanned, and adjust frequency) of scanning based on that), add those
+comments to the database (date of creation, author, id, parent id), and at the end of each day
+process the data to find the comments made in that month which are replies to top-level comments by
+people who are not the original author of the top-level comment, and tabulate the frequencies, and
+update the sidebar widget for the leaderboard. Heroku hobby-dev plan offers a 10,000 row limit
+(10,000 comments total) and 1 GB storage capacity (assuming a row is int + int + int + str(32) +
+str(32) + str(32)) which should be very comfortable. Monthly number of comments seems to be at most
+200, so should be able to store 50 months worth of data before having to delete. Need to delete
+comments older than X number of months, if we can delete a year or 2 before, would be best (since
+year 6 month-old posts get archived anyway.) New BegMegs can be created by automod, and the script
+can use a constant or automatically find the newest Beginner Megathread to use (once every 6 months).
+Problems will only occur if the sub grows to a large capacity, but I don't think that'll happen soon.
+
+create table dojo_comments (id varchar primary key, parent_id varchar, created_utc timestamp, author varchar)
+insert into test (id, parent_id, created_utc, author) values ('ggayril', 'j15bgb', '2020-12-18 15:55:23', 'TheRealCrusader');
+
+## Notes
+
+- Can obtain ~400 top-level comments in total
+- Need to obtain their replies as well
