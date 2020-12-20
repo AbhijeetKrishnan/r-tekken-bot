@@ -1,3 +1,4 @@
+import logging
 import os
 import traceback
 from datetime import datetime
@@ -18,7 +19,7 @@ def _get_top_channels_raw(game_id: str, maxLength: int=5):
         traceback.print_exc()
         raise SystemExit(err)
     if r.status_code != requests.codes.ok:
-        print('Received bad request with code', r.status_code)
+        logging.error('Received bad request with code', r.status_code)
         raise SystemExit
     access_token = r.json()['access_token']
 
@@ -28,14 +29,14 @@ def _get_top_channels_raw(game_id: str, maxLength: int=5):
 
     # Getting top channels based on url
     stream_api_url = f"https://api.twitch.tv/helix/streams?game_id={game_id}&first={maxLength}"
-    print(stream_api_url)
+    logging.debug(stream_api_url)
     try:
         r = requests.get(stream_api_url, headers=headers)
         r.raise_for_status()
     except requests.exceptions.HTTPError as err:
         raise SystemExit(err)
     channels = r.json()
-    print(channels)
+    logging.debug(channels)
 
     if "data" not in channels:
         return top_channels
@@ -46,9 +47,9 @@ def _get_top_channels_raw(game_id: str, maxLength: int=5):
     # Need to make additional request to user endpoint since user_name is not display name
     # Reference: https://github.com/twitchdev/issues/issues/3
     user_ids = [stream["user_id"] for stream in channels]
-    print(user_ids)
+    logging.debug(user_ids)
     user_api_url = f"https://api.twitch.tv/helix/users?id={'&id='.join(user_ids)}"
-    print(user_api_url)
+    logging.debug(user_api_url)
     try:
         r = requests.get(user_api_url, headers=headers)
         r.raise_for_status()
@@ -89,7 +90,7 @@ def _get_top_channels_raw(game_id: str, maxLength: int=5):
             "viewers": viewers, 
             "url": streamer_url
         }
-        print(sidebar_channel)
+        logging.debug(sidebar_channel)
         top_channels.append(sidebar_channel)
 
     return top_channels

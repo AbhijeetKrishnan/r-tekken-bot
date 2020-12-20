@@ -1,3 +1,5 @@
+import logging
+
 import praw
 
 import twitch
@@ -10,7 +12,7 @@ def get_top_channels(subreddit):
     text += ":- | :- | :- \n"
 
     channels = twitch.get_top_channels_raw(subreddit, MAX_NUM_STREAMS)
-    print('Streamers: ', ', '.join([channel["name"] for channel in channels]))
+    logging.info('Streamers: {}'.format(', '.join([channel["name"] for channel in channels])))
     if len(channels) == 0:
         return ""
 
@@ -21,9 +23,12 @@ def get_top_channels(subreddit):
         if len(status) > MAX_STATUS_LENGTH:
             status = status[:MAX_STATUS_LENGTH] + "..."
 
-        text += "[%s](%s) |" % (status, channel["url"])
-        text += " %d | " % (channel["viewers"])
-        text += "[%s](%s) \n " % (channel["name"], channel["url"])
+        text += "[%s](%s)|" % (status, channel["url"])
+        text += "%d|" % (channel["viewers"])
+        text += "[%s](%s)\n" % (channel["name"], channel["url"])
+    
+    text += "***\n^(This widget is auto-updated by u/tekken-bot developed by u/pisciatore.)" # credit myself
+    logging.info(f'Livestream widget text -\n{text}')
     return text
 
 def update_sidebar(subreddit):

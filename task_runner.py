@@ -1,8 +1,6 @@
 import datetime
+import logging
 import os
-import re
-import sys
-import threading
 import time
 
 import praw
@@ -15,7 +13,7 @@ import twitch
 
 r = None
 
-# TODO: use logging module everywhere instead of print statements
+logging.basicConfig(format='[%(asctime)s] %(levelname)s:%(message)s', level=logging.INFO)
 
 def login():
     global r
@@ -28,23 +26,22 @@ def login():
         username=os.environ['BOT_USERNAME']
     )
     try:
-        print(r.user.me())
-        print('Login successful!')
+        logging.info(r.user.me())
+        logging.info('Login successful!')
         return 0
     except Exception:
-        print('Login unsuccessful')
+        logging.error('Login unsuccessful')
         return 1
 
 if __name__ == '__main__':
-    print('Attempting to login...')
+    logging.debug('Attempting to login...')
     if login():
-        print('Exiting application...')
+        logging.debug('Exiting application...')
         exit(1)
 
     tekken = r.subreddit('Tekken')
     
-    print(time.ctime())
-    print('Starting tasks!')
+    logging.info('Starting tasks!')
 
     schedule.every(30).seconds.do(redesign.update_sidebar, subreddit=tekken)
     # schedule.every(30).seconds.do(tasks.delete_shitposts, subreddit=tekken)

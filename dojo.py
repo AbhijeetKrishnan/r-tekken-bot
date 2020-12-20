@@ -1,6 +1,7 @@
 "Implements tasks required for the Dojo system on r/Tekken."
 
 import calendar
+import logging
 import os
 import traceback
 from collections import defaultdict
@@ -43,9 +44,9 @@ def ingest_new(submission):
     # this to only retrieve newer comments, or insert new records into the db?
     # Check out the SubmissionStream object
 
-    print('Connecting to db...')
+    logging.debug('Connecting to db...')
     conn = connect_to_db()
-    print('Connected to db!')
+    logging.debug('Connected to db!')
     cur = conn.cursor()
 
     records = 0 # to count total number of comments inserted into the db
@@ -55,7 +56,7 @@ def ingest_new(submission):
             submission.comments.replace_more()
             break
         except Exception:
-            print("Handling replace_more exception")
+            logging.warning("Handling replace_more exception")
             sleep(1)
 
     for comment in submission.comments.list(): # ref.: https://praw.readthedocs.io/en/latest/tutorials/comments.html
@@ -74,7 +75,7 @@ def ingest_new(submission):
             author = '[deleted]'
 
         record = (comment.id, datetime.fromtimestamp(comment.created_utc), author)
-        print('Comment record: ({}, {}, {})'.format(*record))
+        logging.debug('Comment record: ({}, {}, {})'.format(*record))
         try:
             cur.execute(sql.SQL("""
             INSERT INTO {} (id, created_utc, author) 
@@ -83,9 +84,9 @@ def ingest_new(submission):
             """).format(sql.Identifier(TABLE_NAME)), 
                 record)
             if cur.rowcount == 0:
-                print('Comment already exists in db!')
+                logging.debug('Comment already exists in db!')
             else:
-                print('Inserted comment into db')
+                logging.debug('Inserted comment into db')
             records += cur.rowcount
         except:
             traceback.print_exception()
@@ -94,7 +95,7 @@ def ingest_new(submission):
     
     conn.commit()
     cur.close()
-    print('Closing connection...')
+    logging.debug('Closing connection...')
     conn.close()
     return records
 
@@ -104,9 +105,9 @@ def tally_scores(start_timestamp, end_timestamp):
     [start_timestamp, end_timestamp]
     """
 
-    print('Connecting to db...')
+    logging.debug('Connecting to db...')
     conn = connect_to_db()
-    print('Connected to db!')
+    logging.debug('Connected to db!')
     cur = conn.cursor()
 
     cur.execute(sql.SQL("""
@@ -126,9 +127,9 @@ def tally_scores(start_timestamp, end_timestamp):
             leaders.append(record)
 
     cur.close()
-    print('Closing connection...')
+    logging.debug('Closing connection...')
     conn.close()
-    print('Leaderboard for', start_timestamp.month, leaders)
+    logging.info(f'Leaderboard for {start_timestamp.month}: {leaders}')
     return leaders
 
 def get_leaderboard(leaders):
@@ -141,7 +142,8 @@ def get_leaderboard(leaders):
     text += ':- | :-: \n'
     for item in leaders:
         text += f'u/{item[0]} | {item[1]} \n'
-    print(f'Leaderboard widget text - \n{text}')
+    text += "***\n^(This widget is auto-updated by u/tekken-bot developed by u/pisciatore.)" # credit myself
+    logging.info(f'Leaderboard widget text - \n{text}')
     return text
 
 def update_dojo_sidebar(subreddit, leaders, cur_dt):
@@ -158,7 +160,7 @@ def update_dojo_sidebar(subreddit, leaders, cur_dt):
                 text = get_leaderboard(leaders)
                 new_short_name = f'Dojo Leaderboard ({month} {year})'
                 if len(text) > 0:
-                    print(f'Updating Dojo Leaderboard widget shortName as {new_short_name}')
+                    logging.info(f'Updating Dojo Leaderboard widget shortName as {new_short_name}')
                     w.mod.update(shortName=new_short_name, text=text)
 
 def dojo_leaderboard(subreddit):
@@ -172,19 +174,19 @@ def dojo_leaderboard(subreddit):
     Frequency: 1 day
     """
 
-    print('Retrieving Tekken Dojo...')
+    logging.info('Retrieving Tekken Dojo...')
     dojo = get_tekken_dojo(subreddit)
-    print('Obtained Tekken Dojo!')
-    print('Ingesting new comments...')
+    logging.info('Obtained Tekken Dojo!')
+    logging.info('Ingesting new comments...')
     total_comments = ingest_new(dojo)
-    print(f'Successfully ingested {total_comments} new comments!')
+    logging.info(f'Successfully ingested {total_comments} new comments!')
 
     # Find (year, month) to tally scores for
     curr = datetime.now()
     start_timestamp = datetime.fromisoformat(f'{curr.year}-{curr.month}-01 00:00:00.000')
     end_timestamp = datetime.fromisoformat(f'{curr.year}-{curr.month}-{calendar.monthrange(curr.year, curr.month)[1]} 23:59:59.999')
 
-    print(f'Finding scores for {curr.year}-{curr.month}')
+    logging.info(f'Finding scores for {curr.year}-{curr.month}')
 
     leaders = tally_scores(start_timestamp, end_timestamp)
     update_dojo_sidebar(subreddit, leaders, curr)
@@ -203,7 +205,7 @@ def dojo_award(subreddit):
     # Exit from function if not the 1st of the month
     # Ref.: https://stackoverflow.com/a/57221649
     if datetime.now().day != 1:
-        print('Not 1st of the month, skipping award workflow...')
+        logging.info('Not 1st of the month, skipping award workflow...')
         return
     
     pass
@@ -223,14 +225,14 @@ def dojo_cleaner():
 
     cutoff = datetime.now() - timedelta(weeks=WEEK_BUFFER)
 
-    print(f'Deleting comments older than datetime {cutoff}')
+    logging.info(f'Deleting comments older than datetime {str(cutoff)}')
 
     cur.execute(sql.SQL("""
     DELETE FROM {}
     WHERE created_utc < %s
     """.format(sql.Identifier(TABLE_NAME))), (cutoff))
 
-    print(f'Deleted {cur.rowcount} rows')
+    logging.info(f'Deleted {cur.rowcount} rows')
 
     conn.commit()
     cur.close()
