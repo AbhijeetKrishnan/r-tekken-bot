@@ -4,11 +4,12 @@ Python bot to -
 
 - update the livestream widget for [r/Tekken](https://www.reddit.com/r/Tekken/)
 - ~~delete shitposts posted on days other than Shitpost Saturday~~
-- implement the dojo system for r/Tekken
+- implement the dojo system for [r/Tekken](https://www.reddit.com/r/Tekken/)
 
 Updating the sidebar only works on the redesign. The job of porting it to old Reddit is not currently being undertaken.
 
-Based on [r/DotA2](https://www.reddit.com/r/DotA2)'s [sidebar-bot](https://github.com/redditdota/sidebar-bot). Many thanks to [u/coronaria](https://www.reddit.com/user/coronaria) for pointing me to the source.
+Based on [r/DotA2](https://www.reddit.com/r/DotA2)'s [sidebar-bot](https://github.com/redditdota/sidebar-bot).
+Many thanks to [u/coronaria](https://www.reddit.com/user/coronaria) for pointing me to the source.
 
 ## Dojo System
 
@@ -29,24 +30,17 @@ The Tekken Dojo points are logged and displayed in an updating leaderboard in th
 end of the month, the user with the most Dojo points get the title of Dojo Master for that month,
 which awards a custom flair.
 
-The final script would use PRAW at the end of each day to scan the comments (need to check the max
-amount of comments that can be scanned, and adjust frequency) of scanning based on that), add those
-comments to the database (date of creation, author, id, parent id), and at the end of each day
-process the data to find the comments made in that month which are replies to top-level comments by
-people who are not the original author of the top-level comment, and tabulate the frequencies, and
-update the sidebar widget for the leaderboard. Heroku hobby-dev plan offers a 10,000 row limit
-(10,000 comments total) and 1 GB storage capacity (assuming a row is int + int + int + str(32) +
-str(32) + str(32)) which should be very comfortable. Monthly number of comments seems to be at most
-200, so should be able to store 50 months worth of data before having to delete. Need to delete
-comments older than X number of months, if we can delete a year or 2 before, would be best (since
-year 6 month-old posts get archived anyway.) New BegMegs can be created by automod, and the script
-can use a constant or automatically find the newest Beginner Megathread to use (once every 6 months).
-Problems will only occur if the sub grows to a large capacity, but I don't think that'll happen soon.
+The Dojo Leaderboard system was designed to incentivize users to provide high-quality, helpful
+replies to questions in the Tekken Dojo.
 
-create table dojo_comments (id varchar primary key, parent_id varchar, created_utc timestamp, author varchar)
-insert into test (id, parent_id, created_utc, author) values ('ggayril', 'j15bgb', '2020-12-18 15:55:23', 'TheRealCrusader');
+The system can be easily hacked by posting low-effort, spam replies to top-level comments in the
+Tekken Dojo. Users are encouraged to report such comments as spam; they will be removed and action
+will be taken against the repeat offenders.
 
 ## Notes
 
-- Can obtain ~400 top-level comments in total
-- Need to obtain their replies as well
+- Obtained ~1400 comments from 3 months back
+- can probably store at most 20 months of comments total
+- flow 1: ingest new comments + update leaderboard sidebar (every day)
+- flow 2: update wiki + award flairs (1st of every month)
+- flow 3: delete old comments from DB (every 5 months ~= 20 weeks)
