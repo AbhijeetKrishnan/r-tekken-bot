@@ -14,8 +14,8 @@ import schedule
 from psycopg2 import sql
 
 TABLE_NAME = (
-    "dojo_comments"
-)  # the name of the table where Tekken Dojo comments are stored
+    "dojo_comments"  # the name of the table where Tekken Dojo comments are stored
+)
 LEADERBOARD_SIZE = 5  # the top-k commenters will be displayed
 WEEK_BUFFER = 20  # delete comments from the database older than these many weeks
 DOJO_MASTER_FLAIR_ID = "cc570168-4176-11eb-abb3-0e92e4d477f5"
@@ -39,6 +39,7 @@ def get_tekken_dojo(subreddit):
     tekken_dojo = subreddit.sticky()
     return tekken_dojo
 
+
 def ingest_new(submission, stream):
     """
     Ingest all new comments made on the submmission into the database.
@@ -55,10 +56,12 @@ def ingest_new(submission, stream):
     new_comments = []
     try:
         for comment in stream:
-            logging.debug(f'Found comment {comment.id} in stream')
+            logging.debug(f"Found comment {comment.id} in stream")
             if comment.submission == submission:
                 new_comments.append(comment)
-                logging.debug(f'Comment {comment.id} belongs to submission {submission.id}!')
+                logging.debug(
+                    f"Comment {comment.id} belongs to submission {submission.id}!"
+                )
     except:
         logging.error(traceback.format_exc())
 
@@ -149,6 +152,7 @@ def tally_scores(start_timestamp, end_timestamp):
     logging.info(f"Leaderboard for {start_timestamp.month}: {leaders}")
     return leaders
 
+
 def check_db_health(reddit, start_timestamp, end_timestamp):
     """
     Ensures that every comment in the database in the range [start_timestamp, end_timestamp] still exists i.e. has not been deleted.
@@ -161,20 +165,31 @@ def check_db_health(reddit, start_timestamp, end_timestamp):
     conn = connect_to_db()
     logging.debug("Connected to db!")
     cur = conn.cursor()
-    cur.execute(sql.SQL("""
+    cur.execute(
+        sql.SQL(
+            """
     SELECT id from {}
     WHERE created_utc BETWEEN %s AND %s
-    """).format(sql.Identifier(TABLE_NAME)), (start_timestamp, end_timestamp))
+    """
+        ).format(sql.Identifier(TABLE_NAME)),
+        (start_timestamp, end_timestamp),
+    )
 
     while record := cur.fetchone():
-        logging.debug(f'Fetched record {record}')
+        logging.debug(f"Fetched record {record}")
         comment = reddit.comment(record[0])
         if not comment.body:
-            cur.execute(sql.SQL("""
+            cur.execute(
+                sql.SQL(
+                    """
             DELETE FROM {}
             WHERE id = %s
-            """).format(sql.Identifier(TABLE_NAME)), (comment.id))
-            logging.info(f'Deleted record for comment {comment.id} from db')
+            """
+                ).format(sql.Identifier(TABLE_NAME)),
+                (comment.id),
+            )
+            logging.info(f"Deleted record for comment {comment.id} from db")
+
 
 def get_leaderboard(leaders):
     """
@@ -310,7 +325,7 @@ def dojo_award(reddit, subreddit):
     # Exit from function if not the 1st of the month
     # Ref.: https://stackoverflow.com/a/57221649
     if datetime.now().day != 1:
-        logging.info('Not 1st of the month, skipping award workflow...')
+        logging.info("Not 1st of the month, skipping award workflow...")
         return
 
     # Find (year, month) to tally scores for

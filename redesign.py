@@ -42,7 +42,7 @@ def get_top_channels(subreddit):
 def update_sidebar(subreddit):
     for w in subreddit.widgets.sidebar:
         if isinstance(w, praw.models.TextArea):
-            if 'Livestreams' in w.shortName:
+            if "Livestreams" in w.shortName:
                 text = get_top_channels(subreddit)
                 if len(text) > 0:
                     w.mod.update(text=text)
