@@ -39,17 +39,11 @@ def get_tekken_dojo(subreddit):
     tekken_dojo = subreddit.sticky()
     return tekken_dojo
 
-
-def ingest_new(submission):
+def ingest_new(submission, stream):
     """
     Ingest all new comments made on the submmission into the database.
     Assumes table TABLE_NAME is already created
     """
-
-    # TODO: retrieves ~1400 comments in each call from ~2 months back. If called every day, would
-    # retrieve many duplicate comments which would not be inserted into the db. Any way to improve
-    # this to only retrieve newer comments, or insert new records into the db?
-    # Check out the SubmissionStream object
 
     logging.debug("Connecting to db...")
     conn = connect_to_db()
@@ -58,18 +52,20 @@ def ingest_new(submission):
 
     records = 0  # to count total number of comments inserted into the db
 
-    while True:
-        try:
-            submission.comments.replace_more()
-            break
-        except Exception:
-            logging.warning("Handling replace_more exception")
-            sleep(1)
+    new_comments = []
+    try:
+        for comment in stream:
+            logging.debug(f'Found comment {comment.id} in stream')
+            if comment.submission == submission:
+                new_comments.append(comment)
+                logging.debug(f'Comment {comment.id} belongs to submission {submission.id}!')
+    except:
+        logging.error(traceback.format_exc())
 
     for (
         comment
     ) in (
-        submission.comments.list()
+        new_comments
     ):  # ref.: https://praw.readthedocs.io/en/latest/tutorials/comments.html
 
         # Find root comment of this comment
@@ -104,7 +100,7 @@ def ingest_new(submission):
                 logging.debug("Inserted comment into db")
             records += cur.rowcount
         except:
-            traceback.print_exception()
+            logging.error(traceback.format_exc())
             conn.rollback()
             continue
 
@@ -153,6 +149,32 @@ def tally_scores(start_timestamp, end_timestamp):
     logging.info(f"Leaderboard for {start_timestamp.month}: {leaders}")
     return leaders
 
+def check_db_health(reddit, start_timestamp, end_timestamp):
+    """
+    Ensures that every comment in the database in the range [start_timestamp, end_timestamp] still exists i.e. has not been deleted.
+
+    Goes through every comment in the database in the given range and checks if the comment body is present. If not, it
+    is deleted.
+    """
+
+    logging.debug("Connecting to db...")
+    conn = connect_to_db()
+    logging.debug("Connected to db!")
+    cur = conn.cursor()
+    cur.execute(sql.SQL("""
+    SELECT id from {}
+    WHERE created_utc BETWEEN %s AND %s
+    """).format(sql.Identifier(TABLE_NAME)), (start_timestamp, end_timestamp))
+
+    while record := cur.fetchone():
+        logging.debug(f'Fetched record {record}')
+        comment = reddit.comment(record[0])
+        if not comment.body:
+            cur.execute(sql.SQL("""
+            DELETE FROM {}
+            WHERE id = %s
+            """).format(sql.Identifier(TABLE_NAME)), (comment.id))
+            logging.info(f'Deleted record for comment {comment.id} from db')
 
 def get_leaderboard(leaders):
     """
@@ -163,7 +185,7 @@ def get_leaderboard(leaders):
     text = "Rank | User | Dojo Points \n"
     text += ":-: | :- | :-: \n"
     for rank, item in enumerate(leaders):
-        text += f"{rank} | u/{item[0]} | {item[1]}\n"
+        text += f"{rank + 1} | u/{item[0]} | {item[1]}\n"
     text += "***\n"
     text += f"^(Last updated: {time.ctime()} UTC by u/tekken-bot)\n"
     logging.info(f"Leaderboard widget text - \n{text}")
@@ -205,7 +227,7 @@ def award_leader(subreddit, leader, dt):
     logging.debug(f"Dojo flair text generated is {dojo_flair_text}")
 
     # Remove dojo flair from previous leader
-    for flair in subreddit.flair(limit=None):  # only 1024 users can be checked
+    for flair in subreddit.flair(limit=None):
         if flair["flair_css_class"] == "dojo-master":
             logging.info(
                 f'Setting flair of previous leader {flair["user"].name} to {flair["flair_text"].rsplit("|")[0]}'
@@ -240,7 +262,7 @@ def publish_wiki(subreddit, leaders, dt):
     pass
 
 
-def dojo_leaderboard(subreddit):
+def dojo_leaderboard(subreddit, stream):
     """
     Performs the workflow of updating the dojo leaderboard. This includes -
 
@@ -255,7 +277,7 @@ def dojo_leaderboard(subreddit):
     dojo = get_tekken_dojo(subreddit)
     logging.info("Obtained Tekken Dojo!")
     logging.info("Ingesting new comments...")
-    total_comments = ingest_new(dojo)
+    total_comments = ingest_new(dojo, stream)
     logging.info(f"Successfully ingested {total_comments} new comments!")
 
     # Find (year, month) to tally scores for
@@ -273,26 +295,23 @@ def dojo_leaderboard(subreddit):
     update_dojo_sidebar(subreddit, leaders, curr)
 
 
-def dojo_award(subreddit):
+def dojo_award(reddit, subreddit):
     """
     Performs the workflow of publishing the winner and awarding them at the end of each month. This
     includes -
     1. calculating the final leaderboard by querying the db
-    2. ensure all comments counted in the leaderboard still exist
-    3. publishing the leaderboard results to the wiki (each of the top 5 with links to the comments
+    2. publishing the leaderboard results to the wiki (each of the top 5 with links to the comments
        included in their score)
-    4. awarding custom flairs to the leader
+    3. awarding custom flairs to the leader
 
     Frequency: 1st of every month
     """
 
     # Exit from function if not the 1st of the month
     # Ref.: https://stackoverflow.com/a/57221649
-    """
     if datetime.now().day != 1:
         logging.info('Not 1st of the month, skipping award workflow...')
         return
-    """
 
     # Find (year, month) to tally scores for
     curr = datetime.now() - timedelta(hours=24)  # get leaderboard for one day earlier.
@@ -302,6 +321,8 @@ def dojo_award(subreddit):
     end_timestamp = datetime.fromisoformat(
         f"{curr.year}-{curr.month}-{calendar.monthrange(curr.year, curr.month)[1]} 23:59:59.999"
     )
+
+    check_db_health(reddit, start_timestamp, end_timestamp)
 
     logging.info(f"Finding scores for {curr.year}-{curr.month}")
     curr += timedelta(hours=24)  # to ensure year/month is for the next month

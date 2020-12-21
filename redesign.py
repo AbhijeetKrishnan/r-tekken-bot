@@ -29,9 +29,9 @@ def get_top_channels(subreddit):
         if len(status) > MAX_STATUS_LENGTH:
             status = status[:MAX_STATUS_LENGTH] + "..."
 
-        text += "[%s](%s)|" % (status, channel["url"])
-        text += "%d|" % (channel["viewers"])
-        text += "[%s](%s)\n" % (channel["name"], channel["url"])
+        text += "[%s](%s) |" % (status, channel["url"])
+        text += " %d |" % (channel["viewers"])
+        text += " [%s](%s)\n" % (channel["name"], channel["url"])
 
     text += "***\n"
     text += f"^(Last updated: {time.ctime()} UTC by u/tekken-bot)\n"
@@ -42,7 +42,7 @@ def get_top_channels(subreddit):
 def update_sidebar(subreddit):
     for w in subreddit.widgets.sidebar:
         if isinstance(w, praw.models.TextArea):
-            if "Livestreams" in w.shortName:
+            if 'Livestreams' in w.shortName:
                 text = get_top_channels(subreddit)
                 if len(text) > 0:
                     w.mod.update(text=text)

@@ -44,13 +44,14 @@ if __name__ == "__main__":
         exit(1)
 
     tekken = r.subreddit("Tekken")
+    tekken_comment_stream = tekken.stream.comments(skip_existing=True, pause_after=0)
 
     logging.info("Starting tasks!")
 
     schedule.every(30).seconds.do(redesign.update_sidebar, subreddit=tekken)
     # schedule.every(30).seconds.do(tasks.delete_shitposts, subreddit=tekken)
-    schedule.every(60).seconds.do(dojo.dojo_leaderboard, subreddit=tekken)
-    schedule.every(1).day.at("00:00:00").do(dojo.dojo_award, subreddit=tekken)
+    schedule.every(60).seconds.do(dojo.dojo_leaderboard, subreddit=tekken, stream=tekken_comment_stream)
+    schedule.every(1).day.at('00:00:00').do(dojo.dojo_award, reddit=r, subreddit=tekken)
     schedule.every(20).weeks.do(dojo.dojo_cleaner)
 
     while True:

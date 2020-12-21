@@ -21,7 +21,7 @@ def _get_top_channels_raw(game_id: str, maxLength: int = 5):
     try:
         r = requests.post(oauthURL, data=data)
     except requests.exceptions.HTTPError as err:
-        traceback.print_exc()
+        logging.error(traceback.format_exc())
         raise SystemExit(err)
     if r.status_code != requests.codes.ok:
         logging.error("Received bad request with code", r.status_code)
