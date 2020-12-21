@@ -3,7 +3,7 @@
 Python bot to -
 
 - update the livestream widget for [r/Tekken](https://www.reddit.com/r/Tekken/)
-- ~~delete shitposts posted on days other than Shitpost Saturday~~
+- ~~delete shitposts posted on days other than Shitpost Sunday~~
 - implement the dojo system for [r/Tekken](https://www.reddit.com/r/Tekken/)
 
 Updating the sidebar only works on the redesign. The job of porting it to old Reddit is not currently being undertaken.
@@ -37,10 +37,24 @@ The system can be easily hacked by posting low-effort, spam replies to top-level
 Tekken Dojo. Users are encouraged to report such comments as spam; they will be removed and action
 will be taken against the repeat offenders.
 
-## Notes
+### Dojo System Implementation Notes
 
-- Obtained ~1400 comments from 3 months back
-- can probably store at most 20 months of comments total
-- flow 1: ingest new comments + update leaderboard sidebar (every day)
-- flow 2: update wiki + award flairs (1st of every month)
-- flow 3: delete old comments from DB (every 5 months ~= 20 weeks)
+- Flow 1: ingest new comments + update leaderboard sidebar (every day)
+- Flow 2: update wiki + award flairs (1st of every month)
+- Flow 3: delete old comments from DB (every 5 months ~= 20 weeks)
+
+Is a database needed? Each PRAW call is able to retrieve > 2 months of past comments. I could call
+it each time and just use the comments from the month I need without storing them. A database might
+be necessary if I want to do yearly leaderboards, but I can't go beyond that due to Heroku db limits
+anyways. Also, if activity on the dojo increases, the retrieved comments might only go back to a
+month, or less, in which case I'll need a db. I think if I want to scale, I should keep the db.
+
+## Guide to setting up and running tekken-bot on Heroku (TODO)
+
+## Guide to testing tekken-bot locally (TODO)
+
+- Install Postgresql-12
+- Install the Heroku CLI
+- Start the database service
+
+`sudo service postgresql start`

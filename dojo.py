@@ -3,6 +3,7 @@
 import calendar
 import logging
 import os
+import time
 import traceback
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -15,6 +16,7 @@ from psycopg2 import sql
 TABLE_NAME = 'dojo_comments' # the name of the table where Tekken Dojo comments are stored
 LEADERBOARD_SIZE = 5 # the top-k commenters will be displayed
 WEEK_BUFFER = 20 # delete comments from the database older than these many weeks
+DOJO_MASTER_FLAIR_ID = 'cc570168-4176-11eb-abb3-0e92e4d477f5'
 
 def connect_to_db():
     "Connect to database and return the connection object."
@@ -138,22 +140,23 @@ def get_leaderboard(leaders):
     the redesign.
     """
  
-    text = 'User | Dojo Points \n'
-    text += ':- | :-: \n'
-    for item in leaders:
-        text += f'u/{item[0]} | {item[1]} \n'
-    text += "***\n^(This widget is auto-updated by u/tekken-bot developed by u/pisciatore.)" # credit myself
+    text = 'Rank | User | Dojo Points \n'
+    text += ':-: | :- | :-: \n'
+    for rank, item in enumerate(leaders):
+        text += f'{rank} | u/{item[0]} | {item[1]}\n'
+    text += '***\n'
+    text += f'^(Last updated: {time.ctime()} UTC by u/tekken-bot)\n'
     logging.info(f'Leaderboard widget text - \n{text}')
     return text
 
-def update_dojo_sidebar(subreddit, leaders, cur_dt):
+def update_dojo_sidebar(subreddit, leaders, dt):
     """
     Update the Dojo Leaderboard TextArea widget with the current leaderboard contents. Also use the
     current datetime to update the widget title.
     """
 
-    year = "'" + str(cur_dt.year)[-2:]
-    month = calendar.month_name[cur_dt.month][:3]
+    year = "'" + str(dt.year)[-2:]
+    month = calendar.month_name[dt.month][:3]
     for w in subreddit.widgets.sidebar:
         if isinstance(w, praw.models.TextArea):
             if 'Dojo Leaderboard' in w.shortName:
@@ -162,6 +165,44 @@ def update_dojo_sidebar(subreddit, leaders, cur_dt):
                 if len(text) > 0:
                     logging.info(f'Updating Dojo Leaderboard widget shortName as {new_short_name}')
                     w.mod.update(shortName=new_short_name, text=text)
+
+def award_leader(subreddit, leader, dt):
+    """
+    Awards user with Dojo Master flair and removes flair from previous Dojo Master.
+
+    Flair is appended to end of user's existing flair with '| Dojo Master (Mon)'.
+    Previous Dojo Master's Flair is changed to Mokujin with their original flair text restored.
+    """
+
+    # Generate flair text to be appended to leader flair
+    year = f"'{str(dt.year)[2:]}"
+    month = calendar.month_name[dt.month][:3]
+    dojo_flair_text = f'Dojo Master ({month} {year})'
+    logging.debug(f'Dojo flair text generated is {dojo_flair_text}')
+
+    # Remove dojo flair from previous leader
+    for flair in subreddit.flair(limit=None): # only 1024 users can be checked
+        if flair['flair_css_class'] == 'dojo-master':
+            logging.info(f'Setting flair of previous leader {flair["user"].name} to {flair["flair_text"].rsplit("|")[0]}')
+            subreddit.flair.set(flair['user'].name, text=flair['flair_text'].rsplit('|')[0], css_class='mokujin')
+            break
+
+    # Set flair of leader
+    original_flair_text = next(subreddit.flair(leader[0]))['flair_text']
+    logging.debug(f'Original flair text obtained for {leader[0]} is {original_flair_text}')
+    new_flair_text = f'{original_flair_text} | {dojo_flair_text}'
+    subreddit.flair.set(leader[0], text=new_flair_text, flair_template_id=DOJO_MASTER_FLAIR_ID)
+    logging.info(f'Set flair of {leader[0]} as {new_flair_text}')
+
+def publish_wiki(subreddit, leaders, dt):
+    """
+    Publishes the results of the leaderboard for the month's wiki.
+
+    Each (year, month) has a separate page for it, where each page is a table listing the top 5 dojo
+    point winners, along with a list of links to the comments which earned them those points.
+    """
+
+    pass
 
 def dojo_leaderboard(subreddit):
     """
@@ -195,27 +236,43 @@ def dojo_award(subreddit):
     """
     Performs the workflow of publishing the winner and awarding them at the end of each month. This
     includes -
-    1. publishing the leaderboard results to the wiki (each of the top 5 with links to the comments
+    1. calculating the final leaderboard by querying the db
+    2. ensure all comments counted in the leaderboard still exist
+    3. publishing the leaderboard results to the wiki (each of the top 5 with links to the comments
        included in their score)
-    2. awarding custom flairs to the leader
+    4. awarding custom flairs to the leader
 
     Frequency: 1st of every month
     """
 
     # Exit from function if not the 1st of the month
     # Ref.: https://stackoverflow.com/a/57221649
+    """
     if datetime.now().day != 1:
         logging.info('Not 1st of the month, skipping award workflow...')
         return
+    """
     
-    pass
+    # Find (year, month) to tally scores for
+    curr = datetime.now() - timedelta(hours=24) # get leaderboard for one day earlier.
+    start_timestamp = datetime.fromisoformat(f'{curr.year}-{curr.month}-01 00:00:00.000')
+    end_timestamp = datetime.fromisoformat(f'{curr.year}-{curr.month}-{calendar.monthrange(curr.year, curr.month)[1]} 23:59:59.999')
+    
+
+    logging.info(f'Finding scores for {curr.year}-{curr.month}')
+    curr += timedelta(hours=24) # to ensure year/month is for the next month
+    leaders = tally_scores(start_timestamp, end_timestamp)
+
+    award_leader(subreddit, leaders[0], curr)
+
+    publish_wiki(subreddit, leaders, curr)
 
 def dojo_cleaner():
     """
     Performs the workflow of deleting old comments from the db
 
     Deletes comments which are older than a certain month threshold. This is necessary to ensure db
-    does not exceed capacity limits of hobby-dev tier of Heroku PostGreSQL plan.
+    does not exceed capacity limits (10000 rows, 1GB) of hobby-dev tier of Heroku PostGreSQL plan.
 
     Frequency: 5 months (~ 20 weeks)
     """
