@@ -1,9 +1,5 @@
-*.pyc
-alreadyseen.json
-env/
 .env
 .vscode/
-*.log
 praw.ini
 
 # Byte-compiled / optimized / DLL files
