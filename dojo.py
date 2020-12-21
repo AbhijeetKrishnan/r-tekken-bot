@@ -13,17 +13,21 @@ import psycopg2
 import schedule
 from psycopg2 import sql
 
-TABLE_NAME = 'dojo_comments' # the name of the table where Tekken Dojo comments are stored
-LEADERBOARD_SIZE = 5 # the top-k commenters will be displayed
-WEEK_BUFFER = 20 # delete comments from the database older than these many weeks
-DOJO_MASTER_FLAIR_ID = 'cc570168-4176-11eb-abb3-0e92e4d477f5'
+TABLE_NAME = (
+    "dojo_comments"
+)  # the name of the table where Tekken Dojo comments are stored
+LEADERBOARD_SIZE = 5  # the top-k commenters will be displayed
+WEEK_BUFFER = 20  # delete comments from the database older than these many weeks
+DOJO_MASTER_FLAIR_ID = "cc570168-4176-11eb-abb3-0e92e4d477f5"
+
 
 def connect_to_db():
     "Connect to database and return the connection object."
 
-    DATABASE_URL = os.environ['DATABASE_URL']
-    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+    DATABASE_URL = os.environ["DATABASE_URL"]
+    conn = psycopg2.connect(DATABASE_URL, sslmode="require")
     return conn
+
 
 def get_tekken_dojo(subreddit):
     """
@@ -34,6 +38,7 @@ def get_tekken_dojo(subreddit):
 
     tekken_dojo = subreddit.sticky()
     return tekken_dojo
+
 
 def ingest_new(submission):
     """
@@ -46,12 +51,12 @@ def ingest_new(submission):
     # this to only retrieve newer comments, or insert new records into the db?
     # Check out the SubmissionStream object
 
-    logging.debug('Connecting to db...')
+    logging.debug("Connecting to db...")
     conn = connect_to_db()
-    logging.debug('Connected to db!')
+    logging.debug("Connected to db!")
     cur = conn.cursor()
 
-    records = 0 # to count total number of comments inserted into the db
+    records = 0  # to count total number of comments inserted into the db
 
     while True:
         try:
@@ -61,7 +66,11 @@ def ingest_new(submission):
             logging.warning("Handling replace_more exception")
             sleep(1)
 
-    for comment in submission.comments.list(): # ref.: https://praw.readthedocs.io/en/latest/tutorials/comments.html
+    for (
+        comment
+    ) in (
+        submission.comments.list()
+    ):  # ref.: https://praw.readthedocs.io/en/latest/tutorials/comments.html
 
         # Find root comment of this comment
         ancestor = comment
@@ -69,37 +78,42 @@ def ingest_new(submission):
             ancestor = ancestor.parent()
         if ancestor.author == comment.author:
             continue
-        
+
         # Account for comment being deleted, which means comment.author is None
         if comment.author:
             author = comment.author.name
         else:
-            author = '[deleted]'
+            author = "[deleted]"
 
         record = (comment.id, datetime.fromtimestamp(comment.created_utc), author)
-        logging.debug('Comment record: ({}, {}, {})'.format(*record))
+        logging.debug("Comment record: ({}, {}, {})".format(*record))
         try:
-            cur.execute(sql.SQL("""
+            cur.execute(
+                sql.SQL(
+                    """
             INSERT INTO {} (id, created_utc, author) 
             VALUES (%s, %s, %s)
             ON CONFLICT DO NOTHING
-            """).format(sql.Identifier(TABLE_NAME)), 
-                record)
+            """
+                ).format(sql.Identifier(TABLE_NAME)),
+                record,
+            )
             if cur.rowcount == 0:
-                logging.debug('Comment already exists in db!')
+                logging.debug("Comment already exists in db!")
             else:
-                logging.debug('Inserted comment into db')
+                logging.debug("Inserted comment into db")
             records += cur.rowcount
         except:
             traceback.print_exception()
             conn.rollback()
             continue
-    
+
     conn.commit()
     cur.close()
-    logging.debug('Closing connection...')
+    logging.debug("Closing connection...")
     conn.close()
     return records
+
 
 def tally_scores(start_timestamp, end_timestamp):
     """
@@ -107,47 +121,54 @@ def tally_scores(start_timestamp, end_timestamp):
     [start_timestamp, end_timestamp]
     """
 
-    logging.debug('Connecting to db...')
+    logging.debug("Connecting to db...")
     conn = connect_to_db()
-    logging.debug('Connected to db!')
+    logging.debug("Connected to db!")
     cur = conn.cursor()
 
-    cur.execute(sql.SQL("""
+    cur.execute(
+        sql.SQL(
+            """
                         SELECT author, count(*)
                         FROM {}
                         WHERE created_utc BETWEEN %s AND %s
                         GROUP BY author
                         ORDER BY count(*) DESC
-                        """).format(sql.Identifier(TABLE_NAME)), (start_timestamp, end_timestamp))
+                        """
+        ).format(sql.Identifier(TABLE_NAME)),
+        (start_timestamp, end_timestamp),
+    )
 
     leaders = []
     while len(leaders) < LEADERBOARD_SIZE:
         record = cur.fetchone()
-        if not record: # error, or no one commented!?
+        if not record:  # error, or no one commented!?
             break
-        if record[0] != '[deleted]':
+        if record[0] != "[deleted]":
             leaders.append(record)
 
     cur.close()
-    logging.debug('Closing connection...')
+    logging.debug("Closing connection...")
     conn.close()
-    logging.info(f'Leaderboard for {start_timestamp.month}: {leaders}')
+    logging.info(f"Leaderboard for {start_timestamp.month}: {leaders}")
     return leaders
+
 
 def get_leaderboard(leaders):
     """
     Generate the Markdown text to display in the Dojo Leaderboard TextArea widget. Only visible in
     the redesign.
     """
- 
-    text = 'Rank | User | Dojo Points \n'
-    text += ':-: | :- | :-: \n'
+
+    text = "Rank | User | Dojo Points \n"
+    text += ":-: | :- | :-: \n"
     for rank, item in enumerate(leaders):
-        text += f'{rank} | u/{item[0]} | {item[1]}\n'
-    text += '***\n'
-    text += f'^(Last updated: {time.ctime()} UTC by u/tekken-bot)\n'
-    logging.info(f'Leaderboard widget text - \n{text}')
+        text += f"{rank} | u/{item[0]} | {item[1]}\n"
+    text += "***\n"
+    text += f"^(Last updated: {time.ctime()} UTC by u/tekken-bot)\n"
+    logging.info(f"Leaderboard widget text - \n{text}")
     return text
+
 
 def update_dojo_sidebar(subreddit, leaders, dt):
     """
@@ -159,12 +180,15 @@ def update_dojo_sidebar(subreddit, leaders, dt):
     month = calendar.month_name[dt.month][:3]
     for w in subreddit.widgets.sidebar:
         if isinstance(w, praw.models.TextArea):
-            if 'Dojo Leaderboard' in w.shortName:
+            if "Dojo Leaderboard" in w.shortName:
                 text = get_leaderboard(leaders)
-                new_short_name = f'Dojo Leaderboard ({month} {year})'
+                new_short_name = f"Dojo Leaderboard ({month} {year})"
                 if len(text) > 0:
-                    logging.info(f'Updating Dojo Leaderboard widget shortName as {new_short_name}')
+                    logging.info(
+                        f"Updating Dojo Leaderboard widget shortName as {new_short_name}"
+                    )
                     w.mod.update(shortName=new_short_name, text=text)
+
 
 def award_leader(subreddit, leader, dt):
     """
@@ -177,22 +201,33 @@ def award_leader(subreddit, leader, dt):
     # Generate flair text to be appended to leader flair
     year = f"'{str(dt.year)[2:]}"
     month = calendar.month_name[dt.month][:3]
-    dojo_flair_text = f'Dojo Master ({month} {year})'
-    logging.debug(f'Dojo flair text generated is {dojo_flair_text}')
+    dojo_flair_text = f"Dojo Master ({month} {year})"
+    logging.debug(f"Dojo flair text generated is {dojo_flair_text}")
 
     # Remove dojo flair from previous leader
-    for flair in subreddit.flair(limit=None): # only 1024 users can be checked
-        if flair['flair_css_class'] == 'dojo-master':
-            logging.info(f'Setting flair of previous leader {flair["user"].name} to {flair["flair_text"].rsplit("|")[0]}')
-            subreddit.flair.set(flair['user'].name, text=flair['flair_text'].rsplit('|')[0], css_class='mokujin')
+    for flair in subreddit.flair(limit=None):  # only 1024 users can be checked
+        if flair["flair_css_class"] == "dojo-master":
+            logging.info(
+                f'Setting flair of previous leader {flair["user"].name} to {flair["flair_text"].rsplit("|")[0]}'
+            )
+            subreddit.flair.set(
+                flair["user"].name,
+                text=flair["flair_text"].rsplit("|")[0],
+                css_class="mokujin",
+            )
             break
 
     # Set flair of leader
-    original_flair_text = next(subreddit.flair(leader[0]))['flair_text']
-    logging.debug(f'Original flair text obtained for {leader[0]} is {original_flair_text}')
-    new_flair_text = f'{original_flair_text} | {dojo_flair_text}'
-    subreddit.flair.set(leader[0], text=new_flair_text, flair_template_id=DOJO_MASTER_FLAIR_ID)
-    logging.info(f'Set flair of {leader[0]} as {new_flair_text}')
+    original_flair_text = next(subreddit.flair(leader[0]))["flair_text"]
+    logging.debug(
+        f"Original flair text obtained for {leader[0]} is {original_flair_text}"
+    )
+    new_flair_text = f"{original_flair_text} | {dojo_flair_text}"
+    subreddit.flair.set(
+        leader[0], text=new_flair_text, flair_template_id=DOJO_MASTER_FLAIR_ID
+    )
+    logging.info(f"Set flair of {leader[0]} as {new_flair_text}")
+
 
 def publish_wiki(subreddit, leaders, dt):
     """
@@ -203,6 +238,7 @@ def publish_wiki(subreddit, leaders, dt):
     """
 
     pass
+
 
 def dojo_leaderboard(subreddit):
     """
@@ -215,22 +251,27 @@ def dojo_leaderboard(subreddit):
     Frequency: 1 day
     """
 
-    logging.info('Retrieving Tekken Dojo...')
+    logging.info("Retrieving Tekken Dojo...")
     dojo = get_tekken_dojo(subreddit)
-    logging.info('Obtained Tekken Dojo!')
-    logging.info('Ingesting new comments...')
+    logging.info("Obtained Tekken Dojo!")
+    logging.info("Ingesting new comments...")
     total_comments = ingest_new(dojo)
-    logging.info(f'Successfully ingested {total_comments} new comments!')
+    logging.info(f"Successfully ingested {total_comments} new comments!")
 
     # Find (year, month) to tally scores for
     curr = datetime.now()
-    start_timestamp = datetime.fromisoformat(f'{curr.year}-{curr.month}-01 00:00:00.000')
-    end_timestamp = datetime.fromisoformat(f'{curr.year}-{curr.month}-{calendar.monthrange(curr.year, curr.month)[1]} 23:59:59.999')
+    start_timestamp = datetime.fromisoformat(
+        f"{curr.year}-{curr.month}-01 00:00:00.000"
+    )
+    end_timestamp = datetime.fromisoformat(
+        f"{curr.year}-{curr.month}-{calendar.monthrange(curr.year, curr.month)[1]} 23:59:59.999"
+    )
 
-    logging.info(f'Finding scores for {curr.year}-{curr.month}')
+    logging.info(f"Finding scores for {curr.year}-{curr.month}")
 
     leaders = tally_scores(start_timestamp, end_timestamp)
     update_dojo_sidebar(subreddit, leaders, curr)
+
 
 def dojo_award(subreddit):
     """
@@ -252,20 +293,24 @@ def dojo_award(subreddit):
         logging.info('Not 1st of the month, skipping award workflow...')
         return
     """
-    
-    # Find (year, month) to tally scores for
-    curr = datetime.now() - timedelta(hours=24) # get leaderboard for one day earlier.
-    start_timestamp = datetime.fromisoformat(f'{curr.year}-{curr.month}-01 00:00:00.000')
-    end_timestamp = datetime.fromisoformat(f'{curr.year}-{curr.month}-{calendar.monthrange(curr.year, curr.month)[1]} 23:59:59.999')
-    
 
-    logging.info(f'Finding scores for {curr.year}-{curr.month}')
-    curr += timedelta(hours=24) # to ensure year/month is for the next month
+    # Find (year, month) to tally scores for
+    curr = datetime.now() - timedelta(hours=24)  # get leaderboard for one day earlier.
+    start_timestamp = datetime.fromisoformat(
+        f"{curr.year}-{curr.month}-01 00:00:00.000"
+    )
+    end_timestamp = datetime.fromisoformat(
+        f"{curr.year}-{curr.month}-{calendar.monthrange(curr.year, curr.month)[1]} 23:59:59.999"
+    )
+
+    logging.info(f"Finding scores for {curr.year}-{curr.month}")
+    curr += timedelta(hours=24)  # to ensure year/month is for the next month
     leaders = tally_scores(start_timestamp, end_timestamp)
 
     award_leader(subreddit, leaders[0], curr)
 
     publish_wiki(subreddit, leaders, curr)
+
 
 def dojo_cleaner():
     """
@@ -282,14 +327,21 @@ def dojo_cleaner():
 
     cutoff = datetime.now() - timedelta(weeks=WEEK_BUFFER)
 
-    logging.info(f'Deleting comments older than datetime {str(cutoff)}')
+    logging.info(f"Deleting comments older than datetime {str(cutoff)}")
 
-    cur.execute(sql.SQL("""
+    cur.execute(
+        sql.SQL(
+            """
     DELETE FROM {}
     WHERE created_utc < %s
-    """.format(sql.Identifier(TABLE_NAME))), (cutoff))
+    """.format(
+                sql.Identifier(TABLE_NAME)
+            )
+        ),
+        (cutoff),
+    )
 
-    logging.info(f'Deleted {cur.rowcount} rows')
+    logging.info(f"Deleted {cur.rowcount} rows")
 
     conn.commit()
     cur.close()

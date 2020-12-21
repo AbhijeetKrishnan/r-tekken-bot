@@ -8,27 +8,34 @@ import requests
 clientID = os.environ.get("TWITCH_CLIENT_ID")
 clientSecret = os.environ.get("TWITCH_SECRET_ID")
 
-def _get_top_channels_raw(game_id: str, maxLength: int=5):
+
+def _get_top_channels_raw(game_id: str, maxLength: int = 5):
     "Get top channels based on game_id"
 
-    oauthURL = 'https://id.twitch.tv/oauth2/token'
-    data = {'client_id': clientID, 'client_secret': clientSecret, 'grant_type': 'client_credentials'}
+    oauthURL = "https://id.twitch.tv/oauth2/token"
+    data = {
+        "client_id": clientID,
+        "client_secret": clientSecret,
+        "grant_type": "client_credentials",
+    }
     try:
         r = requests.post(oauthURL, data=data)
     except requests.exceptions.HTTPError as err:
         traceback.print_exc()
         raise SystemExit(err)
     if r.status_code != requests.codes.ok:
-        logging.error('Received bad request with code', r.status_code)
+        logging.error("Received bad request with code", r.status_code)
         raise SystemExit
-    access_token = r.json()['access_token']
+    access_token = r.json()["access_token"]
 
-    headers = {'Client-ID': clientID, 'Authorization': 'Bearer ' + access_token}
+    headers = {"Client-ID": clientID, "Authorization": "Bearer " + access_token}
 
     top_channels = []
 
     # Getting top channels based on url
-    stream_api_url = f"https://api.twitch.tv/helix/streams?game_id={game_id}&first={maxLength}"
+    stream_api_url = (
+        f"https://api.twitch.tv/helix/streams?game_id={game_id}&first={maxLength}"
+    )
     logging.debug(stream_api_url)
     try:
         r = requests.get(stream_api_url, headers=headers)
@@ -42,7 +49,7 @@ def _get_top_channels_raw(game_id: str, maxLength: int=5):
         return top_channels
     else:
         channels = channels["data"]
-    
+
     # Getting user_ids based on channels
     # Need to make additional request to user endpoint since user_name is not display name
     # Reference: https://github.com/twitchdev/issues/issues/3
@@ -71,33 +78,34 @@ def _get_top_channels_raw(game_id: str, maxLength: int=5):
         streamer_url = "https://www.twitch.tv/" + login_name
 
         # Correcting status for display in Markdown
-        if '`' in status:
+        if "`" in status:
             status = status.replace("`", "\`")
-        if '[' in status:
+        if "[" in status:
             status = status.replace("[", "\[")
-        if ']' in status:
+        if "]" in status:
             status = status.replace("]", "\]")
-        if '\r' in status:
-            status = status.replace("\r", '')
-        if '\n' in status:
-            status = status.replace("\n", '')
-        if '_' in name:
-            name = name.replace('_', '\_')
+        if "\r" in status:
+            status = status.replace("\r", "")
+        if "\n" in status:
+            status = status.replace("\n", "")
+        if "_" in name:
+            name = name.replace("_", "\_")
 
         sidebar_channel = {
-            "name": name, 
+            "name": name,
             "status": status,
-            "viewers": viewers, 
-            "url": streamer_url
+            "viewers": viewers,
+            "url": streamer_url,
         }
         logging.debug(sidebar_channel)
         top_channels.append(sidebar_channel)
 
     return top_channels
 
+
 def get_top_channels_raw(sub, maxLength=5):
     "Returns list of channels based on subreddit."
-    
+
     try:
         game_id = os.environ.get(sub.display_name.lower())
         return _get_top_channels_raw(game_id, maxLength)
