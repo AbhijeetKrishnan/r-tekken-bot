@@ -56,13 +56,14 @@ def ingest_new(submission, stream):
     new_comments = []
     try:
         for comment in stream:
-            if comment:
-                logging.debug(f"Found comment {comment.id} in stream")
-                if comment.submission == submission:
-                    new_comments.append(comment)
-                    logging.debug(
-                        f"Comment {comment.id} belongs to submission {submission.id}!"
-                    )
+            if not comment:
+                break
+            logging.debug(f"Found comment {comment.id} in stream")
+            if comment.submission == submission:
+                new_comments.append(comment)
+                logging.debug(
+                    f"Comment {comment.id} belongs to submission {submission.id}!"
+                )
     except:
         logging.error(traceback.format_exc())
 
