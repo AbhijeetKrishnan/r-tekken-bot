@@ -45,11 +45,16 @@ if __name__ == "__main__":
 
     tekken = r.subreddit("Tekken")
     tekken_comment_stream = tekken.stream.comments(skip_existing=True, pause_after=0)
+    tekken_submission_stream = tekken.stream.submissions(
+        skip_existing=True, pause_after=0
+    )
 
     logging.info("Starting tasks!")
 
     schedule.every(30).seconds.do(redesign.update_sidebar, subreddit=tekken)
-    # schedule.every(30).seconds.do(tasks.delete_shitposts, subreddit=tekken)
+    schedule.every(30).seconds.do(
+        tasks.delete_shitposts, stream=tekken_submission_stream
+    )
     schedule.every(60).seconds.do(
         dojo.dojo_leaderboard, subreddit=tekken, stream=tekken_comment_stream
     )

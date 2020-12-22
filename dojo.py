@@ -55,9 +55,7 @@ def ingest_new(submission, stream):
 
     new_comments = []
     try:
-        for comment in stream:
-            if not comment:
-                break
+        while comment := next(stream):
             logging.debug(f"Found comment {comment.id} in stream")
             if comment.submission == submission:
                 new_comments.append(comment)
@@ -294,16 +292,23 @@ def publish_wiki(subreddit, leaders, comment_urls, start_dt, end_dt):
     url_list = []
     for author, score in leaders:
         curr_url_list = []
-        cur.execute(sql.SQL("""
+        cur.execute(
+            sql.SQL(
+                """
         SELECT id from {}
         WHERE author = %s
         AND
         created_utc BETWEEN %s AND %s
-        """).format(sql.Identifier(TABLE_NAME)), (author, start_dt, end_dt))
+        """
+            ).format(sql.Identifier(TABLE_NAME)),
+            (author, start_dt, end_dt),
+        )
         if cur.rowcount != score:
-            logging.error(f'Rows retrieved for {author} does not match their score ({score})!')
+            logging.error(
+                f"Rows retrieved for {author} does not match their score ({score})!"
+            )
         while record := cur.fetchone():
-            logging.debug(f'Retrieved record {record}')
+            logging.debug(f"Retrieved record {record}")
             permalink = comment_urls[record[0]]
             curr_url_list.append(permalink)
         url_list.append(curr_url_list)
@@ -312,7 +317,9 @@ def publish_wiki(subreddit, leaders, comment_urls, start_dt, end_dt):
     table = "User | Score | Comments\n"
     table += ":-: | :-: | :--\n"
     for (author, score), author_url_list in zip(leaders, url_list):
-        url_str = ", ".join(f"[{idx + 1}]({url})" for idx, url in enumerate(author_url_list))
+        url_str = ", ".join(
+            f"[{idx + 1}]({url})" for idx, url in enumerate(author_url_list)
+        )
         row = f"u/{author} | {score} | {url_str}\n"
         table += row
     text += table
@@ -322,15 +329,18 @@ def publish_wiki(subreddit, leaders, comment_urls, start_dt, end_dt):
     text += "***\n"
 
     logging.info(f"Wiki text generated for ({month} {year}) is - \n{text}")
-    
+
     # Update wiki
     try:
-        dojo_leaderboard_wiki = subreddit.wiki['tekken-dojo/dojo-leaderboard']   
+        dojo_leaderboard_wiki = subreddit.wiki["tekken-dojo/dojo-leaderboard"]
         existing_text = dojo_leaderboard_wiki.content_md
         new_text = text + existing_text
-        dojo_leaderboard_wiki.edit(content=new_text, reason=f"Update for {month} {year}")
+        dojo_leaderboard_wiki.edit(
+            content=new_text, reason=f"Update for {month} {year}"
+        )
     except:
         logging.error(traceback.format_exc())
+
 
 def dojo_leaderboard(subreddit, stream):
     """
