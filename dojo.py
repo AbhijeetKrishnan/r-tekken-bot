@@ -157,10 +157,11 @@ def tally_scores(start_timestamp, end_timestamp):
 
 def check_db_health(reddit, start_timestamp, end_timestamp):
     """
-    Ensures that every comment in the database in the range [start_timestamp, end_timestamp] still exists i.e. has not been deleted.
+    Ensures that every comment in the database in the range [start_timestamp, end_timestamp] still
+    exists i.e. has not been deleted.
 
-    Goes through every comment in the database in the given range and checks if the comment body is present. If not, it
-    is deleted.
+    Goes through every comment in the database in the given range and checks if the comment body is
+    present. If not, it is deleted.
     """
 
     logging.debug("Connecting to db...")
@@ -177,6 +178,7 @@ def check_db_health(reddit, start_timestamp, end_timestamp):
         (start_timestamp, end_timestamp),
     )
 
+    url_list = {}
     while record := cur.fetchone():
         logging.debug(f"Fetched record {record}")
         comment = reddit.comment(record[0])
@@ -191,6 +193,9 @@ def check_db_health(reddit, start_timestamp, end_timestamp):
                 (comment.id),
             )
             logging.info(f"Deleted record for comment {comment.id} from db")
+        else:
+            url_list[comment.id] = comment.permalink
+    return url_list
 
 
 def get_leaderboard(leaders):
@@ -199,7 +204,7 @@ def get_leaderboard(leaders):
     the redesign.
     """
 
-    text = "Rank | User | Dojo Points \n"
+    text = "Rank | User | Points \n"
     text += ":-: | :- | :-: \n"
     for rank, item in enumerate(leaders):
         text += f"{rank + 1} | u/{item[0]} | {item[1]}\n"
@@ -257,18 +262,18 @@ def award_leader(subreddit, leader, dt):
             break
 
     # Set flair of leader
-    original_flair_text = next(subreddit.flair(leader[0]))["flair_text"]
+    original_flair_text = next(subreddit.flair(leader[0]))["flair_text"].rstrip()
     logging.debug(
-        f"Original flair text obtained for {leader[0]} is {original_flair_text}"
+        f"Original flair text obtained for {leader[0]} is '{original_flair_text}'"
     )
     new_flair_text = f"{original_flair_text} | {dojo_flair_text}"
     subreddit.flair.set(
         leader[0], text=new_flair_text, flair_template_id=DOJO_MASTER_FLAIR_ID
     )
-    logging.info(f"Set flair of {leader[0]} as {new_flair_text}")
+    logging.info(f"Set flair of {leader[0]} as '{new_flair_text}'")
 
 
-def publish_wiki(subreddit, leaders, dt):
+def publish_wiki(subreddit, leaders, comment_urls, start_dt, end_dt):
     """
     Publishes the results of the leaderboard for the month's wiki.
 
@@ -276,8 +281,56 @@ def publish_wiki(subreddit, leaders, dt):
     point winners, along with a list of links to the comments which earned them those points.
     """
 
-    pass
+    # Write header
+    year = f"'{str(start_dt.year)[2:]}"
+    month = calendar.month_name[start_dt.month][:3]
+    text = f"# Leaderboard for ({month} '{year})\n\n"
 
+    # For each author, get comments made by them in the given timeframe
+    logging.debug("Connecting to db...")
+    conn = connect_to_db()
+    logging.debug("Connected to db!")
+    cur = conn.cursor()
+    url_list = []
+    for author, score in leaders:
+        curr_url_list = []
+        cur.execute(sql.SQL("""
+        SELECT id from {}
+        WHERE author = %s
+        AND
+        created_utc BETWEEN %s AND %s
+        """).format(sql.Identifier(TABLE_NAME)), (author, start_dt, end_dt))
+        if cur.rowcount != score:
+            logging.error(f'Rows retrieved for {author} does not match their score ({score})!')
+        while record := cur.fetchone():
+            logging.debug(f'Retrieved record {record}')
+            permalink = comment_urls[record[0]]
+            curr_url_list.append(permalink)
+        url_list.append(curr_url_list)
+
+    # Create table
+    table = "User | Score | Comments\n"
+    table += ":-: | :-: | :--\n"
+    for (author, score), author_url_list in zip(leaders, url_list):
+        url_str = ", ".join(f"[{idx + 1}]({url})" for idx, url in enumerate(author_url_list))
+        row = f"u/{author} | {score} | {url_str}\n"
+        table += row
+    text += table
+
+    # Add update UTC
+    text += f"^(Created by u/tekken-bot on {time.ctime()})\n"
+    text += "***\n"
+
+    logging.info(f"Wiki text generated for ({month} {year}) is - \n{text}")
+    
+    # Update wiki
+    try:
+        dojo_leaderboard_wiki = subreddit.wiki['tekken-dojo/dojo-leaderboard']   
+        existing_text = dojo_leaderboard_wiki.content_md
+        new_text = text + existing_text
+        dojo_leaderboard_wiki.edit(content=new_text, reason=f"Update for {month} {year}")
+    except:
+        logging.error(traceback.format_exc())
 
 def dojo_leaderboard(subreddit, stream):
     """
@@ -339,7 +392,7 @@ def dojo_award(reddit, subreddit):
         f"{curr.year}-{curr.month}-{calendar.monthrange(curr.year, curr.month)[1]} 23:59:59.999"
     )
 
-    check_db_health(reddit, start_timestamp, end_timestamp)
+    comment_urls = check_db_health(reddit, start_timestamp, end_timestamp)
 
     logging.info(f"Finding scores for {curr.year}-{curr.month}")
     curr += timedelta(hours=24)  # to ensure year/month is for the next month
@@ -347,7 +400,7 @@ def dojo_award(reddit, subreddit):
 
     award_leader(subreddit, leaders[0], curr)
 
-    publish_wiki(subreddit, leaders, curr)
+    publish_wiki(subreddit, leaders, comment_urls, start_timestamp, end_timestamp)
 
 
 def dojo_cleaner():

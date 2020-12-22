@@ -29,7 +29,7 @@ def delete_shitposts(subreddit, day=7):
     if not subreddit:
         logging.error("Subreddit not found")
         return
-    for submission in subreddit.new():
+    for submission in subreddit.new(): # TODO: use SubmissionStream object for this instead
         if submission.link_flair_text == SHITPOST_FLAIR_TEXT:
             logging.debug(submission.title)
             # Check timestamp if it is lies on the given day for all timezones in [-12:00, +14:00]
