@@ -12,6 +12,10 @@ MAX_NUM_STREAMS = 5  # number of streams displayed in livestream table
 
 
 def get_top_channels(subreddit):
+    """
+    Returns a Markdown table of the top live streamers for a game
+    """
+
     text = "Twitch | 👁 | Streamer \n"
     text += ":- | :- | :- \n"
 
@@ -39,6 +43,7 @@ def get_top_channels(subreddit):
     return text
 
 
+# TODO: could refactor this to use widget_shortname and text as parameters
 def update_sidebar(subreddit):
     for w in subreddit.widgets.sidebar:
         if isinstance(w, praw.models.TextArea):
