@@ -146,6 +146,7 @@ def tally_scores(start_timestamp, end_timestamp):
     trailers AS (
         SELECT author, COUNT(*) AS c
         FROM {}
+        WHERE created_utc BETWEEN %s AND %s
         GROUP BY author
         HAVING COUNT(*) = (SELECT last_count.c FROM last_count)
     )
@@ -155,7 +156,14 @@ def tally_scores(start_timestamp, end_timestamp):
     ORDER BY c DESC
     """
     ).format(sql.Identifier(TABLE_NAME), sql.Identifier(TABLE_NAME))
-    params = (start_timestamp, end_timestamp, LEADERBOARD_SIZE, LEADERBOARD_SIZE - 1)
+    params = (
+        start_timestamp,
+        end_timestamp,
+        LEADERBOARD_SIZE,
+        LEADERBOARD_SIZE - 1,
+        start_timestamp,
+        end_timestamp,
+    )
 
     logging.debug(
         cur.mogrify(
@@ -403,7 +411,9 @@ def dojo_leaderboard(subreddit, stream):
     end_timestamp = datetime.fromisoformat(
         f"{curr.year}-{curr.month}-{calendar.monthrange(curr.year, curr.month)[1]} 23:59:59.999"
     )
-
+    logging.debug(
+        f"Finding scores for timestamp range [{start_timestamp}, {end_timestamp}]"
+    )
     logging.info(f"Finding scores for {curr.year}-{curr.month}")
 
     leaders = tally_scores(start_timestamp, end_timestamp)
