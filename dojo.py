@@ -125,26 +125,60 @@ def tally_scores(start_timestamp, end_timestamp):
     logging.debug("Connected to db!")
     cur = conn.cursor()
 
+    query = sql.SQL(
+        """
+    WITH monthly_leaderboard AS (
+        SELECT author, COUNT(*) AS c
+        FROM {}
+        WHERE 
+        created_utc BETWEEN %s AND %s
+        AND
+        author != '[deleted]'
+        GROUP BY author
+        ORDER BY COUNT(*) DESC
+        LIMIT %s
+    ),
+    last_count AS (
+        SELECT monthly_leaderboard.c AS c
+        FROM monthly_leaderboard
+        OFFSET %s
+    ),
+    trailers AS (
+        SELECT author, COUNT(*) AS c
+        FROM {}
+        GROUP BY author
+        HAVING COUNT(*) = (SELECT last_count.c FROM last_count)
+    )
+    SELECT * FROM monthly_leaderboard
+    UNION
+    SELECT * FROM trailers
+    ORDER BY c DESC
+    """
+    ).format(sql.Identifier(TABLE_NAME), sql.Identifier(TABLE_NAME))
+    params = (start_timestamp, end_timestamp, LEADERBOARD_SIZE, LEADERBOARD_SIZE - 1)
+
+    logging.debug(
+        cur.mogrify(
+            query,
+            params,
+        )
+    )
     cur.execute(
-        sql.SQL(
-            """
-                        SELECT author, count(*)
-                        FROM {}
-                        WHERE created_utc BETWEEN %s AND %s
-                        GROUP BY author
-                        ORDER BY count(*) DESC
-                        """
-        ).format(sql.Identifier(TABLE_NAME)),
-        (start_timestamp, end_timestamp),
+        query,
+        params,
     )
 
-    leaders = []
-    while len(leaders) < LEADERBOARD_SIZE:
-        record = cur.fetchone()
-        if not record:  # error, or no one commented!?
-            break
-        if record[0] != "[deleted]":
-            leaders.append(record)
+    leaders = []  # stores (rank, username, score) for each user in leaderboard
+    last_score = -1
+    rank = 0
+    while record := cur.fetchone():
+        curr_score = record[1]
+        if last_score != curr_score:
+            rank += 1
+            last_score = curr_score
+        leader_record = (rank, record[0], record[1])
+        logging.debug(f"Obtained leaderboard entry {leader_record}")
+        leaders.append(leader_record)
 
     cur.close()
     logging.debug("Closing connection...")
@@ -204,8 +238,8 @@ def get_leaderboard(leaders):
 
     text = "Rank | User | Points \n"
     text += ":-: | :- | :-: \n"
-    for rank, item in enumerate(leaders):
-        text += f"{rank + 1} | u/{item[0]} | {item[1]}\n"
+    for rank, user, points in leaders:
+        text += f"{rank} | u/{user} | {points}\n"
     text += "***\n"
     text += f"^(Last updated: {time.ctime()} UTC by u/tekken-bot)\n"
     logging.info(f"Leaderboard widget text - \n{text}")
@@ -232,12 +266,12 @@ def update_dojo_sidebar(subreddit, leaders, dt):
                     w.mod.update(shortName=new_short_name, text=text)
 
 
-def award_leader(subreddit, leader, dt):
+def award_leader(subreddit, leaders, dt):
     """
-    Awards user with Dojo Master flair and removes flair from previous Dojo Master.
+    Awards user(s) with Dojo Master flair and removes flair from previous Dojo Master.
 
-    Flair is appended to end of user's existing flair with '| Dojo Master (Mon)'.
-    Previous Dojo Master's Flair is changed to Mokujin with their original flair text restored.
+    Flair is appended to end of users' existing flair with '| Dojo Master (Mon)'.
+    Previous Dojo Masters' Flair is changed to Mokujin with their original flair text restored.
     """
 
     # Generate flair text to be appended to leader flair
@@ -257,18 +291,19 @@ def award_leader(subreddit, leader, dt):
                 text=flair["flair_text"].rsplit("|")[0],
                 css_class="mokujin",
             )
-            break
 
-    # Set flair of leader
-    original_flair_text = next(subreddit.flair(leader[0]))["flair_text"].rstrip()
-    logging.debug(
-        f"Original flair text obtained for {leader[0]} is '{original_flair_text}'"
-    )
-    new_flair_text = f"{original_flair_text} | {dojo_flair_text}"
-    subreddit.flair.set(
-        leader[0], text=new_flair_text, flair_template_id=DOJO_MASTER_FLAIR_ID
-    )
-    logging.info(f"Set flair of {leader[0]} as '{new_flair_text}'")
+    # Set flair of leader(s)
+    for rank, user, points in leaders:
+        if rank == 1:
+            original_flair_text = next(subreddit.flair(user))["flair_text"].rstrip()
+            logging.debug(
+                f"Original flair text obtained for {user} is '{original_flair_text}'"
+            )
+            new_flair_text = f"{original_flair_text} | {dojo_flair_text}"
+            subreddit.flair.set(
+                user, text=new_flair_text, flair_template_id=DOJO_MASTER_FLAIR_ID
+            )
+            logging.info(f"Set flair of {user} as '{new_flair_text}'")
 
 
 def publish_wiki(subreddit, leaders, comment_urls, start_dt, end_dt):
@@ -282,7 +317,7 @@ def publish_wiki(subreddit, leaders, comment_urls, start_dt, end_dt):
     # Write header
     year = f"'{str(start_dt.year)[2:]}"
     month = calendar.month_name[start_dt.month][:3]
-    text = f"# Leaderboard for ({month} '{year})\n\n"
+    text = f"# Leaderboard for ({month} {year})\n\n"
 
     # For each author, get comments made by them in the given timeframe
     logging.debug("Connecting to db...")
@@ -290,7 +325,7 @@ def publish_wiki(subreddit, leaders, comment_urls, start_dt, end_dt):
     logging.debug("Connected to db!")
     cur = conn.cursor()
     url_list = []
-    for author, score in leaders:
+    for _, author, score in leaders:
         curr_url_list = []
         cur.execute(
             sql.SQL(
@@ -305,7 +340,7 @@ def publish_wiki(subreddit, leaders, comment_urls, start_dt, end_dt):
         )
         if cur.rowcount != score:
             logging.error(
-                f"Rows retrieved for {author} does not match their score ({score})!"
+                f"# of rows retrieved for {author} does not match their score ({score})!"
             )
         while record := cur.fetchone():
             logging.debug(f"Retrieved record {record}")
@@ -314,13 +349,13 @@ def publish_wiki(subreddit, leaders, comment_urls, start_dt, end_dt):
         url_list.append(curr_url_list)
 
     # Create table
-    table = "User | Score | Comments\n"
-    table += ":-: | :-: | :--\n"
-    for (author, score), author_url_list in zip(leaders, url_list):
+    table = "Rank | User | Score | Comments\n"
+    table += ":-: | :-: | :-: | :--\n"
+    for (rank, author, score), author_url_list in zip(leaders, url_list):
         url_str = ", ".join(
             f"[{idx + 1}]({url})" for idx, url in enumerate(author_url_list)
         )
-        row = f"u/{author} | {score} | {url_str}\n"
+        row = f"{rank} | u/{author} | {score} | {url_str}\n"
         table += row
     text += table
 
@@ -408,7 +443,7 @@ def dojo_award(reddit, subreddit):
     curr += timedelta(hours=24)  # to ensure year/month is for the next month
     leaders = tally_scores(start_timestamp, end_timestamp)
 
-    award_leader(subreddit, leaders[0], curr)
+    award_leader(subreddit, leaders, curr)
 
     publish_wiki(subreddit, leaders, comment_urls, start_timestamp, end_timestamp)
 
