@@ -7,18 +7,19 @@ import time
 import traceback
 from collections import defaultdict
 from datetime import datetime, timedelta
+from typing import List, Tuple, Dict
 
 import praw
 import psycopg2
 import schedule
 from psycopg2 import sql
 
-TABLE_NAME = (
+TABLE_NAME: str = (
     "dojo_comments"  # the name of the table where Tekken Dojo comments are stored
 )
-LEADERBOARD_SIZE = 5  # the top-k commenters will be displayed
-WEEK_BUFFER = 20  # delete comments from the database older than these many weeks
-DOJO_MASTER_FLAIR_ID = "cc570168-4176-11eb-abb3-0e92e4d477f5"
+LEADERBOARD_SIZE: int = 5  # the top-k commenters will be displayed
+WEEK_BUFFER: int = 20  # delete comments from the database older than these many weeks
+DOJO_MASTER_FLAIR_ID: str = "cc570168-4176-11eb-abb3-0e92e4d477f5"
 
 
 def connect_to_db():
@@ -69,7 +70,7 @@ def is_unhelpful(comment) -> bool:
     return is_unhelpful
 
 
-def ingest_new(submission, stream):
+def ingest_new(submission, stream) -> int:
     """
     Ingest all new comments made on the submmission into the database.
     Assumes table TABLE_NAME is already created
@@ -147,7 +148,9 @@ def ingest_new(submission, stream):
     return records
 
 
-def tally_scores(start_timestamp, end_timestamp):
+def tally_scores(
+    start_timestamp: datetime, end_timestamp: datetime
+) -> List[Tuple[int, str, int]]:
     """
     Go through database to produce count of final scores + comment_ids for comments lying in range
     [start_timestamp, end_timestamp]
@@ -209,9 +212,11 @@ def tally_scores(start_timestamp, end_timestamp):
         params,
     )
 
-    leaders = []  # stores (rank, username, score) for each user in leaderboard
-    last_score = -1
-    rank = 0
+    leaders: List[
+        Tuple[int, str, int]
+    ] = []  # stores (rank, username, score) for each user in leaderboard
+    last_score: int = -1
+    rank: int = 0
     while record := cur.fetchone():
         curr_score = record[1]
         if last_score != curr_score:
@@ -228,7 +233,7 @@ def tally_scores(start_timestamp, end_timestamp):
     return leaders
 
 
-def check_db_health(reddit, start_timestamp, end_timestamp):
+def check_db_health(reddit, start_timestamp, end_timestamp) -> Dict[str, str]:
     """
     Ensures that every comment in the database in the range [start_timestamp, end_timestamp] still
     exists i.e. has not been deleted.
@@ -251,7 +256,7 @@ def check_db_health(reddit, start_timestamp, end_timestamp):
         (start_timestamp, end_timestamp),
     )
 
-    url_list = {}
+    url_list: Dict[str, str] = {}
     while record := cur.fetchone():
         logging.debug(f"Fetched record {record}")
         comment = reddit.comment(record[0])
@@ -271,7 +276,7 @@ def check_db_health(reddit, start_timestamp, end_timestamp):
     return url_list
 
 
-def get_leaderboard(leaders):
+def get_leaderboard(leaders) -> str:
     """
     Generate the Markdown text to display in the Dojo Leaderboard TextArea widget. Only visible in
     the redesign.
@@ -287,7 +292,7 @@ def get_leaderboard(leaders):
     return text
 
 
-def update_dojo_sidebar(subreddit, leaders, dt):
+def update_dojo_sidebar(subreddit, leaders, dt) -> None:
     """
     Update the Dojo Leaderboard TextArea widget with the current leaderboard contents. Also use the
     current datetime to update the widget title.
@@ -307,7 +312,7 @@ def update_dojo_sidebar(subreddit, leaders, dt):
                     w.mod.update(shortName=new_short_name, text=text)
 
 
-def award_leader(subreddit, leaders, dt):
+def award_leader(subreddit, leaders, dt) -> None:
     """
     Awards user(s) with Dojo Master flair and removes flair from previous Dojo Master.
 
@@ -347,7 +352,7 @@ def award_leader(subreddit, leaders, dt):
             logging.info(f"Set flair of {user} as '{new_flair_text}'")
 
 
-def publish_wiki(subreddit, leaders, comment_urls, start_dt, end_dt):
+def publish_wiki(subreddit, leaders, comment_urls, start_dt, end_dt) -> None:
     """
     Publishes the results of the leaderboard for the month's wiki.
 
@@ -418,7 +423,7 @@ def publish_wiki(subreddit, leaders, comment_urls, start_dt, end_dt):
         logging.error(traceback.format_exc())
 
 
-def dojo_leaderboard(subreddit, stream):
+def dojo_leaderboard(subreddit, stream) -> None:
     """
     Performs the workflow of updating the dojo leaderboard. This includes -
 
@@ -453,7 +458,7 @@ def dojo_leaderboard(subreddit, stream):
     update_dojo_sidebar(subreddit, leaders, curr)
 
 
-def dojo_award(reddit, subreddit):
+def dojo_award(reddit, subreddit) -> None:
     """
     Performs the workflow of publishing the winner and awarding them at the end of each month. This
     includes -
@@ -491,7 +496,7 @@ def dojo_award(reddit, subreddit):
     publish_wiki(subreddit, leaders, comment_urls, start_timestamp, end_timestamp)
 
 
-def dojo_cleaner():
+def dojo_cleaner() -> None:
     """
     Performs the workflow of deleting old comments from the db
 
