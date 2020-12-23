@@ -11,7 +11,7 @@ MAX_STATUS_LENGTH = 20  # length of status allowed in livestream table
 MAX_NUM_STREAMS = 5  # number of streams displayed in livestream table
 
 
-def get_top_channels(subreddit):
+def get_top_channels(subreddit) -> str:
     """
     Returns a Markdown table of the top live streamers for a game
     """
@@ -44,7 +44,7 @@ def get_top_channels(subreddit):
 
 
 # TODO: could refactor this to use widget_shortname and text as parameters
-def update_sidebar(subreddit):
+def update_sidebar(subreddit) -> None:
     for w in subreddit.widgets.sidebar:
         if isinstance(w, praw.models.TextArea):
             if "Livestreams" in w.shortName:

@@ -2,6 +2,7 @@ import logging
 import os
 import traceback
 from datetime import datetime
+from typing import List, Dict, cast
 
 import requests
 
@@ -9,7 +10,7 @@ clientID = os.environ.get("TWITCH_CLIENT_ID")
 clientSecret = os.environ.get("TWITCH_SECRET_ID")
 
 
-def _get_top_channels_raw(game_id: str, maxLength: int = 5):
+def _get_top_channels_raw(game_id: str, maxLength: int = 5) -> List[Dict[str, str]]:
     "Get top channels based on game_id"
 
     oauthURL = "https://id.twitch.tv/oauth2/token"
@@ -30,7 +31,7 @@ def _get_top_channels_raw(game_id: str, maxLength: int = 5):
 
     headers = {"Client-ID": clientID, "Authorization": "Bearer " + access_token}
 
-    top_channels = []
+    top_channels: List[Dict[str, str]] = []
 
     # Getting top channels based on url
     stream_api_url = (
@@ -103,11 +104,14 @@ def _get_top_channels_raw(game_id: str, maxLength: int = 5):
     return top_channels
 
 
-def get_top_channels_raw(sub, maxLength=5):
+def get_top_channels_raw(sub, maxLength: int = 5) -> List[Dict[str, str]]:
     "Returns list of channels based on subreddit."
 
     try:
-        game_id = os.environ.get(sub.display_name.lower())
+        game_id: str = cast(str, os.environ.get(sub.display_name.lower()))
+        if not game_id:
+            logging.error(f"No game_id provided: '{game_id}'")
+            raise Exception
         return _get_top_channels_raw(game_id, maxLength)
     except Exception:
         return []

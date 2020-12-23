@@ -18,7 +18,7 @@ logging.basicConfig(
 )
 
 
-def login():
+def login() -> int:
     global r
 
     r = praw.Reddit(
