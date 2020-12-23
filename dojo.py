@@ -40,6 +40,35 @@ def get_tekken_dojo(subreddit):
     return tekken_dojo
 
 
+def is_unhelpful(comment) -> bool:
+    """
+    Returns True if a comment should not be counted towards a user's total Dojo Points
+
+    A comment which is not providing helpful information to a question (top-level comment) on the
+    Tekken Dojo should not be counted towards a user's total. Spam/low-effort comments will
+    hopefully be reported and deleted so that when awards are computed, the check_db_health function
+    will remove them from the db. Comments like 'No problem!' or "You're welcome" are not
+    spam/low-effort but should still not be counted. This function checks for these sort of comments
+    """
+
+    is_unhelpful = False
+    if not comment:
+        logging.error("Comment object was None")
+        return False
+    if not comment.body:
+        logging.warning(f"Comment {comment.id} was deleted")
+        return False
+    filter = [
+        "you're welcome",
+        "no problem",
+    ]
+    for text in filter:
+        if text.lower() in comment.body.lower():
+            is_unhelpful = True
+
+    return is_unhelpful
+
+
 def ingest_new(submission, stream):
     """
     Ingest all new comments made on the submmission into the database.
@@ -83,6 +112,10 @@ def ingest_new(submission, stream):
             author = comment.author.name
         else:
             author = "[deleted]"
+
+        # TODO: Filter comment if its content is not helpful
+        if is_unhelpful(comment):
+            continue
 
         record = (comment.id, datetime.fromtimestamp(comment.created_utc), author)
         logging.debug("Comment record: ({}, {}, {})".format(*record))
