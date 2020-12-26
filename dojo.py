@@ -276,7 +276,7 @@ def check_db_health(reddit, start_timestamp, end_timestamp) -> Dict[str, str]:
     return url_list
 
 
-def get_leaderboard(leaders) -> str:
+def get_leaderboard_text(leaders) -> str:
     """
     Generate the Markdown text to display in the Dojo Leaderboard TextArea widget. Only visible in
     the redesign.
@@ -303,7 +303,7 @@ def update_dojo_sidebar(subreddit, leaders, dt) -> None:
     for w in subreddit.widgets.sidebar:
         if isinstance(w, praw.models.TextArea):
             if "Dojo Leaderboard" in w.shortName:
-                text = get_leaderboard(leaders)
+                text = get_leaderboard_text(leaders)
                 new_short_name = f"Dojo Leaderboard ({month} {year})"
                 if len(text) > 0:
                     logging.info(

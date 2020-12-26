@@ -5,8 +5,14 @@ import logging
 from datetime import datetime, timedelta
 
 import praw
+import twitch
+import redesign
 
 SHITPOST_FLAIR_TEXT = "Shit Post"  # text of the shitpost flair
+MAX_STATUS_LENGTH = 20  # length of status allowed in livestream table
+# keep at 20 to prevent a single long string overflowing the available limit
+# e.g. 'LMFAOOOOOOoOoOoOoOoOoOoO' takes up the entire table width on my screen
+MAX_NUM_STREAMS = 5  # number of streams displayed in livestream table
 
 
 def get_removal_reason_id(subreddit):
@@ -47,3 +53,15 @@ def delete_shitposts(stream, flair_text=SHITPOST_FLAIR_TEXT, day=7):
                     f"Deleting post: https://www.reddit.com{submission.permalink}"
                 )
                 # submission.mod.remove(reason_id=get_removal_reason_id(subreddit))
+
+
+def update_livestream_widget(subreddit) -> None:
+    """
+    Update the livestream widget in the redesign
+    """
+
+    redesign.update_sidebar_widget(
+        subreddit,
+        "Livestreams",
+        twitch.get_top_channels(subreddit, MAX_NUM_STREAMS, MAX_STATUS_LENGTH),
+    )

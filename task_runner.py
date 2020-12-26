@@ -51,7 +51,7 @@ if __name__ == "__main__":
 
     logging.info("Starting tasks!")
 
-    schedule.every(30).seconds.do(redesign.update_sidebar, subreddit=tekken)
+    schedule.every(30).seconds.do(tasks.update_livestream_widget, subreddit=tekken)
     schedule.every(30).seconds.do(
         tasks.delete_shitposts, stream=tekken_submission_stream
     )

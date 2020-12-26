@@ -3,6 +3,7 @@ import os
 import traceback
 from datetime import datetime
 from typing import List, Dict, cast
+import time
 
 import requests
 
@@ -115,3 +116,35 @@ def get_top_channels_raw(sub, maxLength: int = 5) -> List[Dict[str, str]]:
         return _get_top_channels_raw(game_id, maxLength)
     except Exception:
         return []
+
+
+def get_top_channels(subreddit, num_streams=5, status_length=20) -> str:
+    """
+    Returns a Markdown table of the top live streamers for a game
+    """
+
+    text = "Twitch | 👁 | Streamer \n"
+    text += ":- | :- | :- \n"
+
+    channels = get_top_channels_raw(subreddit, num_streams)
+    logging.info(
+        "Streamers: {}".format(", ".join([channel["name"] for channel in channels]))
+    )
+    if len(channels) == 0:
+        return ""
+
+    for channel in channels:
+        status = channel["status"]
+        if "|" in status:
+            status = status[: status.index("|")]
+        if len(status) > status_length:
+            status = status[:status_length] + "..."
+
+        text += "[%s](%s) |" % (status, channel["url"])
+        text += " %d |" % (channel["viewers"])
+        text += " [%s](%s)\n" % (channel["name"], channel["url"])
+
+    text += "***\n"
+    text += f"^(Last updated: {time.ctime()} UTC by u/tekken-bot)\n"
+    logging.info(f"Livestream widget text -\n{text}")
+    return text
