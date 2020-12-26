@@ -14,7 +14,7 @@ import twitch
 r = None
 
 logging.basicConfig(
-    format="[%(asctime)s] %(levelname)s:%(message)s", level=logging.INFO
+    format="[%(asctime)s] %(levelname)s:%(message)s", level=logging.DEBUG
 )
 
 
@@ -60,6 +60,7 @@ if __name__ == "__main__":
     )
     schedule.every(1).day.at("00:00:00").do(dojo.dojo_award, reddit=r, subreddit=tekken)
     schedule.every(20).weeks.do(dojo.dojo_cleaner)
+    schedule.every(13).weeks.do(dojo.update_dojo_links, subreddit=tekken)
 
     while True:
         schedule.run_pending()

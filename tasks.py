@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 import praw
 import twitch
 import redesign
+import dojo
 
 SHITPOST_FLAIR_TEXT = "Shit Post"  # text of the shitpost flair
 MAX_STATUS_LENGTH = 20  # length of status allowed in livestream table

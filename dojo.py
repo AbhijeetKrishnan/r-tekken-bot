@@ -8,6 +8,7 @@ import traceback
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import List, Tuple, Dict
+import re
 
 import praw
 import psycopg2
@@ -530,3 +531,56 @@ def dojo_cleaner() -> None:
     conn.commit()
     cur.close()
     conn.close()
+
+
+def update_dojo_links(subreddit) -> None:
+    """
+    Update all links which reference the Tekken Dojo with the current Tekken Dojo post
+
+    Updates the links in -
+    1. menu links (top bar)
+    2. sidebar (Useful Stuff - For Beginners)
+    3. image widget (Tekken Dojo)
+    4. welcome message
+    """
+
+    # get current dojo post
+    dojo = get_tekken_dojo(subreddit)
+    new_link = dojo.permalink
+    new_full_link = "https://www.reddit.com" + new_link
+    logging.debug(f"Dojo permalink: {new_link}")
+
+    # get old link
+    curr_welcome_msg_txt = subreddit.mod.settings()["welcome_message_text"]
+    m = re.search(
+        r"\[\*\*Tekken Dojo\*\*\]\(([^ ]*)\)", curr_welcome_msg_txt, flags=re.MULTILINE
+    )
+    old_link = m.group(1)
+    logging.debug(f"Old Dojo link: {old_link}")
+
+    # Update menu links
+    menu = subreddit.widgets.topbar[0]
+    for menu_link in menu:
+        if menu_link.text == "Tekken Dojo":
+            menu_link.mod.update(url=new_full_link)
+    logging.info("Updated top bar menu link")
+
+    # Update sidebar widgets (Useful Stuff TextArea + Tekken Dojo ImageWidget)
+    for widget in subreddit.widgets.sidebar:
+        if isinstance(widget, praw.models.TextArea):
+            if "Useful Stuff" in widget.shortName:
+                curr_text = widget.text
+                new_text = curr_text.replace(old_link, new_link)
+                widget.mod.update(text=new_text)
+                logging.info("Updated Useful Stuff sidebar link")
+        elif isinstance(widget, praw.models.ImageWidget):
+            if "Tekken Dojo" in widget.shortName:
+                img = widget.data
+                img[0].linkUrl = new_full_link
+                widget.mod.update(data=img)
+                logging.info("Updated Tekken Dojo image link")
+
+    # update welcome message
+    new_welcome_msg_txt = curr_welcome_msg_txt.replace(old_link, new_link)
+    subreddit.mod.update(welcome_message_text=new_welcome_msg_txt)
+    logging.info("Updated welcome message text")
