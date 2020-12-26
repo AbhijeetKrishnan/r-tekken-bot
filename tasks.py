@@ -22,7 +22,7 @@ def get_removal_reason_id(subreddit):
             return removal_reason.id
 
 
-def delete_shitposts(stream, flair_text=SHITPOST_FLAIR_TEXT, day=6):
+def delete_shitposts(stream, flair_text=SHITPOST_FLAIR_TEXT, day=5):
     """
     Deletes all posts not posted on the scheduled day whose flair text is 'flair_text'.
 
@@ -31,7 +31,7 @@ def delete_shitposts(stream, flair_text=SHITPOST_FLAIR_TEXT, day=6):
         day - the day of the week [1, 7] designated for posts with the given flair text
     """
     if day not in range(1, 8):
-        logging.warning(f"Invalid day of week ({day}). Setting day to Sat (6) instead.")
+        logging.warning(f"Invalid day of week ({day}). Setting day to Fri (5) instead.")
         day = 7
     while submission := next(stream):
         if submission.link_flair_text == flair_text:

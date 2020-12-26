@@ -31,8 +31,8 @@ def update_sidebar_old(subreddit, section: str, text: str) -> None:
     old_section_text = re.search(
         f"\*\*\*\n\n\# {section.title()}\n\n([^#]*)\n\*\*\*", sidebar_text, re.MULTILINE
     ).group(1)
-    logging.info(f"Relevant section: {old_section_text}")
+    logging.debug(f"Relevant section: {old_section_text}")
     new_section_text = sidebar_text.replace(old_section_text, text)
-    logging.info(f"New sidebar text: {new_section_text}")
+    logging.debug(f"New sidebar text: {new_section_text}")
     sidebar.edit(new_section_text)
     logging.info("Successfully updated sidebar description")

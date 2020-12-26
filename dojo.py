@@ -325,10 +325,10 @@ def update_dojo_sidebar(subreddit, leaders, dt) -> None:
         sidebar_text,
         re.MULTILINE,
     ).group(1)
-    logging.info(f"Relevant section: {old_section_text}")
+    logging.debug(f"Relevant section: {old_section_text}")
     text = f"Dojo Leaderboard ({month} {year})\n\n" + text
     new_section_text = sidebar_text.replace(old_section_text, text)
-    logging.info(f"New sidebar text: {new_section_text}")
+    logging.debug(f"New sidebar text: {new_section_text}")
     sidebar.edit(new_section_text)
     logging.info("Successfully updated sidebar description")
 

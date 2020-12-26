@@ -53,7 +53,7 @@ if __name__ == "__main__":
 
     schedule.every(30).seconds.do(tasks.update_livestream_widget, subreddit=tekken)
     schedule.every(30).seconds.do(
-        tasks.delete_shitposts, stream=tekken_submission_stream
+        tasks.delete_shitposts, stream=tekken_submission_stream, day=5
     )
     schedule.every(60).seconds.do(
         dojo.dojo_leaderboard, subreddit=tekken, stream=tekken_comment_stream
