@@ -15,6 +15,8 @@ import psycopg2
 import schedule
 from psycopg2 import sql
 
+import redesign
+
 TABLE_NAME: str = (
     "dojo_comments"  # the name of the table where Tekken Dojo comments are stored
 )
@@ -298,19 +300,37 @@ def update_dojo_sidebar(subreddit, leaders, dt) -> None:
     Update the Dojo Leaderboard TextArea widget with the current leaderboard contents. Also use the
     current datetime to update the widget title.
     """
-
+    # TODO: refactor this so that it can be handled by redesign.update_sidebar funcs itself
     year = "'" + str(dt.year)[-2:]
     month = calendar.month_name[dt.month][:3]
+    text = get_leaderboard_text(leaders)
     for w in subreddit.widgets.sidebar:
         if isinstance(w, praw.models.TextArea):
             if "Dojo Leaderboard" in w.shortName:
-                text = get_leaderboard_text(leaders)
                 new_short_name = f"Dojo Leaderboard ({month} {year})"
                 if len(text) > 0:
                     logging.info(
                         f"Updating Dojo Leaderboard widget shortName as {new_short_name}"
                     )
                     w.mod.update(shortName=new_short_name, text=text)
+
+    logging.info(
+        f"Updating sidebar on old Reddit for section Dojo Leaderboard with text {text}"
+    )
+    sidebar = subreddit.wiki["config/sidebar"]
+    sidebar_text = sidebar.content_md
+    logging.debug(f"Obtained sidebar description: {sidebar_text}")
+    old_section_text = re.search(
+        f"\*\*\*\n\n\# (Dojo Leaderboard[^\n]*\n\n[^#]*)\n\*\*\*",
+        sidebar_text,
+        re.MULTILINE,
+    ).group(1)
+    logging.info(f"Relevant section: {old_section_text}")
+    text = f"Dojo Leaderboard ({month} {year})\n\n" + text
+    new_section_text = sidebar_text.replace(old_section_text, text)
+    logging.info(f"New sidebar text: {new_section_text}")
+    sidebar.edit(new_section_text)
+    logging.info("Successfully updated sidebar description")
 
 
 def award_leader(subreddit, leaders, dt) -> None:

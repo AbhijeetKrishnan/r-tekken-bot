@@ -49,7 +49,7 @@ if __name__ == "__main__":
         skip_existing=True, pause_after=0
     )
 
-    logging.info("Starting tasks!")
+    logging.info("Starting tasks...")
 
     schedule.every(30).seconds.do(tasks.update_livestream_widget, subreddit=tekken)
     schedule.every(30).seconds.do(

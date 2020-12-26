@@ -58,11 +58,13 @@ def delete_shitposts(stream, flair_text=SHITPOST_FLAIR_TEXT, day=6):
 
 def update_livestream_widget(subreddit) -> None:
     """
-    Update the livestream widget in the redesign
+    Update the livestream widget in the redesign and on old Reddit
     """
 
+    text = twitch.get_top_channels(subreddit, MAX_NUM_STREAMS, MAX_STATUS_LENGTH)
     redesign.update_sidebar_widget(
         subreddit,
         "Livestreams",
-        twitch.get_top_channels(subreddit, MAX_NUM_STREAMS, MAX_STATUS_LENGTH),
+        text,
     )
+    redesign.update_sidebar_old(subreddit, "Livestreams", text)
