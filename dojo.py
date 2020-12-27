@@ -314,26 +314,9 @@ def update_dojo_sidebar(subreddit, leaders, dt) -> None:
                     )
                     w.mod.update(shortName=new_short_name, text=text)
 
-    logging.info(
-        f"Updating sidebar on old Reddit for section Dojo Leaderboard with text {text}"
+    redesign.update_sidebar_old(
+        subreddit, "Dojo Leaderboard", text, f"Dojo Leaderboard ({month} {year})"
     )
-    sidebar = subreddit.wiki["config/sidebar"]
-    sidebar_text = sidebar.content_md
-    logging.debug(f"Obtained sidebar description: {sidebar_text}")
-    try:
-        old_section_text = re.search(
-            f"\*\*\*\n\n\# (Dojo Leaderboard[^\n]*\n\n[^#]*)\n\*\*\*",
-            sidebar_text,
-            re.MULTILINE,
-        ).group(1)
-        logging.debug(f"Relevant section: {old_section_text}")
-        text = f"Dojo Leaderboard ({month} {year})\n\n" + text
-        new_section_text = sidebar_text.replace(old_section_text, text)
-        logging.debug(f"New sidebar text: {new_section_text}")
-        sidebar.edit(new_section_text)
-        logging.info("Successfully updated sidebar description")
-    except AttributeError:
-        logging.error(traceback.format_exc())
 
 
 def award_leader(subreddit, leaders, dt) -> None:
