@@ -1,6 +1,7 @@
 import logging
 import time
 import re
+import traceback
 
 import praw
 
@@ -28,11 +29,14 @@ def update_sidebar_old(subreddit, section: str, text: str) -> None:
     sidebar = subreddit.wiki["config/sidebar"]
     sidebar_text = sidebar.content_md
     logging.debug(f"Obtained sidebar description: {sidebar_text}")
-    old_section_text = re.search(
-        f"\*\*\*\n\n\# {section.title()}\n\n([^#]*)\n\*\*\*", sidebar_text, re.MULTILINE
-    ).group(1)
-    logging.debug(f"Relevant section: {old_section_text}")
-    new_section_text = sidebar_text.replace(old_section_text, text)
-    logging.debug(f"New sidebar text: {new_section_text}")
-    sidebar.edit(new_section_text)
-    logging.info("Successfully updated sidebar description")
+    try:
+        old_section_text = re.search(
+            f"\*\*\*\n\n\# {section.title()}\n\n([^#]*)\n\*\*\*", sidebar_text, re.MULTILINE
+        ).group(1)
+        logging.debug(f"Relevant section: {old_section_text}")
+        new_section_text = sidebar_text.replace(old_section_text, text)
+        logging.debug(f"New sidebar text: {new_section_text}")
+        sidebar.edit(new_section_text)
+        logging.info("Successfully updated sidebar description")
+    except AttributeError:
+        logging.error(traceback.format_exc())
