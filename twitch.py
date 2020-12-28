@@ -127,7 +127,7 @@ def get_top_channels(subreddit, num_streams=5, status_length=20) -> str:
     text += ":- | :- | :- \n"
 
     channels = get_top_channels_raw(subreddit, num_streams)
-    logging.info(
+    logging.debug(
         "Streamers: {}".format(", ".join([channel["name"] for channel in channels]))
     )
     if len(channels) == 0:
@@ -146,5 +146,5 @@ def get_top_channels(subreddit, num_streams=5, status_length=20) -> str:
 
     text += "***\n"
     text += f"^(Last updated: {time.ctime()} UTC by u/tekken-bot)\n"
-    logging.info(f"Livestream widget text -\n{text}")
+    logging.debug(f"Livestream widget text -\n{text}")
     return text

@@ -548,27 +548,37 @@ def update_dojo_links(subreddit) -> None:
     2. sidebar (Useful Stuff - For Beginners)
     3. image widget (Tekken Dojo)
     4. welcome message
+    5. old sidebar
     """
 
     # get current dojo post
     dojo = get_tekken_dojo(subreddit)
-    new_link = dojo.permalink
-    new_full_link = "https://www.reddit.com" + new_link
-    logging.debug(f"Dojo permalink: {new_link}")
+    new_permalink = dojo.permalink
+    new_full_link = "https://www.reddit.com" + new_permalink
+    logging.debug(f"Dojo permalink: {new_permalink}")
 
     # get old link
     curr_welcome_msg_txt = subreddit.mod.settings()["welcome_message_text"]
     m = re.search(
         r"\[\*\*Tekken Dojo\*\*\]\(([^ ]*)\)", curr_welcome_msg_txt, flags=re.MULTILINE
     )
-    old_link = m.group(1)
-    logging.debug(f"Old Dojo link: {old_link}")
+    try:
+        old_permalink = m.group(1)
+    except:
+        logging.info(f"{curr_welcome_msg_txt}")
+        logging.error(traceback.format_exc())
+        return
+    old_full_link = "https://www.reddit.com" + old_permalink
+    logging.debug(f"Old Dojo link: {old_permalink}")
 
     # Update menu links
     menu = subreddit.widgets.topbar[0]
-    for menu_link in menu:
+    data = menu.data
+    for i, menu_link in enumerate(menu):
         if menu_link.text == "Tekken Dojo":
-            menu_link.mod.update(url=new_full_link)
+            data[i].url = new_full_link
+            break
+    menu.mod.update(data=data)
     logging.info("Updated top bar menu link")
 
     # Update sidebar widgets (Useful Stuff TextArea + Tekken Dojo ImageWidget)
@@ -576,7 +586,7 @@ def update_dojo_links(subreddit) -> None:
         if isinstance(widget, praw.models.TextArea):
             if "Useful Stuff" in widget.shortName:
                 curr_text = widget.text
-                new_text = curr_text.replace(old_link, new_link)
+                new_text = curr_text.replace(old_permalink, new_permalink)
                 widget.mod.update(text=new_text)
                 logging.info("Updated Useful Stuff sidebar link")
         elif isinstance(widget, praw.models.ImageWidget):
@@ -587,6 +597,21 @@ def update_dojo_links(subreddit) -> None:
                 logging.info("Updated Tekken Dojo image link")
 
     # update welcome message
-    new_welcome_msg_txt = curr_welcome_msg_txt.replace(old_link, new_link)
+    new_welcome_msg_txt = curr_welcome_msg_txt.replace(old_permalink, new_permalink)
     subreddit.mod.update(welcome_message_text=new_welcome_msg_txt)
     logging.info("Updated welcome message text")
+
+    # update old sidebar
+    sidebar = subreddit.wiki["config/sidebar"]
+    contents = sidebar.content_md
+    new_content = contents.replace(old_full_link, new_full_link)
+    new_content = new_content.replace(old_permalink, new_permalink)
+    sidebar.edit(new_content)
+    logging.info("Updated links in the old sidebar")
+
+    # update stylesheet
+    stylesheet = subreddit.stylesheet
+    stylesheet_contents = subreddit.stylesheet().stylesheet
+    new_stylesheet = stylesheet_contents.replace(old_permalink, new_permalink)
+    stylesheet.update(new_stylesheet)
+    logging.info("Updated links in the stylesheet")
