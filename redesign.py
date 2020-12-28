@@ -6,12 +6,20 @@ import traceback
 import praw
 
 
-def update_sidebar_widget(subreddit, short_name: str, text: str) -> None:
+def update_sidebar_widget(
+    subreddit, short_name: str, text: str, new_short_name: str = None
+) -> None:
+    if not new_short_name:
+        new_short_name = short_name
+    logging.debug(
+        f"Attempting to update sidebar widget with shortName: {short_name}, newShortName: {new_short_name}, text: \n{text}"
+    )
     for w in subreddit.widgets.sidebar:
         if isinstance(w, praw.models.TextArea):
             if short_name in w.shortName:
                 if len(text) > 0:
-                    w.mod.update(text=text)
+                    w.mod.update(shortName=new_short_name, text=text)
+    logging.info(f"Successfully updated {new_short_name} widget")
 
 
 def update_sidebar_old(
@@ -28,7 +36,7 @@ def update_sidebar_old(
     if not new_section_title:
         new_section_title = section_title
 
-    logging.info(
+    logging.debug(
         f"Updating sidebar on old Reddit for section {section_title} with text {text}"
     )
     sidebar = subreddit.wiki["config/sidebar"]

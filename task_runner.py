@@ -29,7 +29,7 @@ def login() -> int:
         username=os.environ["BOT_USERNAME"],
     )
     try:
-        logging.info(r.user.me())
+        logging.debug(r.user.me())
         logging.info("Login successful!")
         return 0
     except Exception:
@@ -40,7 +40,7 @@ def login() -> int:
 if __name__ == "__main__":
     logging.debug("Attempting to login...")
     if login():
-        logging.debug("Exiting application...")
+        logging.error("Exiting application...")
         exit(1)
 
     tekken = r.subreddit("Tekken")

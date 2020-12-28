@@ -232,7 +232,8 @@ def tally_scores(
     cur.close()
     logging.debug("Closing connection...")
     conn.close()
-    logging.info(f"Leaderboard for {start_timestamp.month}: {leaders}")
+    logging.debug(f"Leaderboard for {start_timestamp.month}: {leaders}")
+    logging.info(f"Succesfully generated leaderboard for {start_timestamp.month}")
     return leaders
 
 
@@ -291,7 +292,7 @@ def get_leaderboard_text(leaders) -> str:
         text += f"{rank} | u/{user} | {points}\n"
     text += "***\n"
     text += f"^(Last updated: {time.ctime()} UTC by u/tekken-bot)\n"
-    logging.info(f"Leaderboard widget text - \n{text}")
+    logging.debug(f"Leaderboard widget text - \n{text}")
     return text
 
 
@@ -300,19 +301,12 @@ def update_dojo_sidebar(subreddit, leaders, dt) -> None:
     Update the Dojo Leaderboard TextArea widget with the current leaderboard contents. Also use the
     current datetime to update the widget title.
     """
-    # TODO: refactor this so that it can be handled by redesign.update_sidebar funcs itself
+
     year = "'" + str(dt.year)[-2:]
     month = calendar.month_name[dt.month][:3]
     text = get_leaderboard_text(leaders)
-    for w in subreddit.widgets.sidebar:
-        if isinstance(w, praw.models.TextArea):
-            if "Dojo Leaderboard" in w.shortName:
-                new_short_name = f"Dojo Leaderboard ({month} {year})"
-                if len(text) > 0:
-                    logging.info(
-                        f"Updating Dojo Leaderboard widget shortName as {new_short_name}"
-                    )
-                    w.mod.update(shortName=new_short_name, text=text)
+    new_short_name = f"Dojo Leaderboard ({month} {year})"
+    redesign.update_sidebar_widget(subreddit, "Dojo Leaderboard", text, new_short_name)
 
     redesign.update_sidebar_old(
         subreddit, "Dojo Leaderboard", text, f"Dojo Leaderboard ({month} {year})"
@@ -416,7 +410,7 @@ def publish_wiki(subreddit, leaders, comment_urls, start_dt, end_dt) -> None:
     text += f"^(Created by u/tekken-bot on {time.ctime()})\n"
     text += "***\n"
 
-    logging.info(f"Wiki text generated for ({month} {year}) is - \n{text}")
+    logging.debug(f"Wiki text generated for ({month} {year}) is - \n{text}")
 
     # Update wiki
     try:
@@ -426,6 +420,7 @@ def publish_wiki(subreddit, leaders, comment_urls, start_dt, end_dt) -> None:
         dojo_leaderboard_wiki.edit(
             content=new_text, reason=f"Update for {month} {year}"
         )
+        logging.info("Successfully updated wiki")
     except:
         logging.error(traceback.format_exc())
 
@@ -441,10 +436,10 @@ def dojo_leaderboard(subreddit, stream) -> None:
     Frequency: 1 day
     """
 
-    logging.info("Retrieving Tekken Dojo...")
+    logging.debug("Retrieving Tekken Dojo...")
     dojo = get_tekken_dojo(subreddit)
     logging.info("Obtained Tekken Dojo!")
-    logging.info("Ingesting new comments...")
+    logging.debug("Ingesting new comments...")
     total_comments = ingest_new(dojo, stream)
     logging.info(f"Successfully ingested {total_comments} new comments!")
 
@@ -459,10 +454,12 @@ def dojo_leaderboard(subreddit, stream) -> None:
     logging.debug(
         f"Finding scores for timestamp range [{start_timestamp}, {end_timestamp}]"
     )
-    logging.info(f"Finding scores for {curr.year}-{curr.month}")
+    logging.debug(f"Finding scores for {curr.year}-{curr.month}")
 
     leaders = tally_scores(start_timestamp, end_timestamp)
+    logging.info(f"Found leaders for {curr.year}-{curr.month}")
     update_dojo_sidebar(subreddit, leaders, curr)
+    logging.info(f"Finished dojo leaderboard workflow for {curr.year}-{curr.month}")
 
 
 def dojo_award(reddit, subreddit) -> None:
@@ -494,13 +491,14 @@ def dojo_award(reddit, subreddit) -> None:
 
     comment_urls = check_db_health(reddit, start_timestamp, end_timestamp)
 
-    logging.info(f"Finding scores for {curr.year}-{curr.month}")
+    logging.debug(f"Finding scores for {curr.year}-{curr.month}")
     curr += timedelta(hours=24)  # to ensure year/month is for the next month
     leaders = tally_scores(start_timestamp, end_timestamp)
 
     award_leader(subreddit, leaders, curr)
-
+    logging.info(f"Finished awarding leaders for {curr.year}-{curr.month}")
     publish_wiki(subreddit, leaders, comment_urls, start_timestamp, end_timestamp)
+    logging.info(f"Finished publishing wiki for {curr.year}-{curr.month}")
 
 
 def dojo_cleaner() -> None:
@@ -518,7 +516,7 @@ def dojo_cleaner() -> None:
 
     cutoff = datetime.now() - timedelta(weeks=WEEK_BUFFER)
 
-    logging.info(f"Deleting comments older than datetime {str(cutoff)}")
+    logging.debug(f"Deleting comments older than datetime {str(cutoff)}")
 
     cur.execute(
         sql.SQL(
@@ -565,7 +563,7 @@ def update_dojo_links(subreddit) -> None:
     try:
         old_permalink = m.group(1)
     except:
-        logging.info(f"{curr_welcome_msg_txt}")
+        logging.debug(f"{curr_welcome_msg_txt}")
         logging.error(traceback.format_exc())
         return
     old_full_link = "https://www.reddit.com" + old_permalink
