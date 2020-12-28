@@ -25,7 +25,6 @@ def update_sidebar_old(
     with the text param.
     """
 
-    # TODO: refactor this to be cleaner
     if not new_section_title:
         new_section_title = section_title
 
@@ -36,18 +35,19 @@ def update_sidebar_old(
     sidebar_text = sidebar.content_md
     logging.debug(f"Obtained sidebar description: {sidebar_text}")
     try:
-        old_section_list = re.split(r"\*\*\*\*", sidebar_text)
-        for idx, section in enumerate(old_section_list):
+        sections = re.split(r"\*\*\*\*", sidebar_text)
+        for idx, section in enumerate(sections):
             if f"# {section_title.title()}" in section:
                 relevant_section = section
                 relevant_idx = idx
+                break
         logging.debug(f"Relevant section: {relevant_section}")
-        new_section_text = f"\n\n# {new_section_title.title()}\n\n{text}\n\n"
-        logging.debug(f"New relevant section text: {new_section_text}")
-        old_section_list[relevant_idx] = new_section_text
-        new_sidebar_text = "****".join(old_section_list)
+        section_text = f"\n\n# {new_section_title.title()}\n\n{text}\n\n"
+        logging.debug(f"New relevant section text: {section_text}")
+        sections[relevant_idx] = section_text
+        new_sidebar_text = "****".join(sections)
         logging.debug(f"New sidebar text: {new_sidebar_text}")
-        sidebar.edit(new_section_text)
+        sidebar.edit(new_sidebar_text)
         logging.info("Successfully updated sidebar description")
     except Exception:
         logging.error(traceback.format_exc())
