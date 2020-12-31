@@ -53,7 +53,7 @@ def delete_shitposts(stream, flair_text=SHITPOST_FLAIR_TEXT, day=5):
                 logging.info(
                     f"Deleting post: https://www.reddit.com{submission.permalink}"
                 )
-                # submission.mod.remove(reason_id=get_removal_reason_id(subreddit))
+                submission.mod.remove(reason_id=get_removal_reason_id(subreddit))
 
 
 def update_livestream_widget(subreddit) -> None:
