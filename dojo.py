@@ -446,7 +446,7 @@ def dojo_leaderboard(subreddit, stream) -> None:
     # Find (year, month) to tally scores for
     curr = datetime.now()
     start_timestamp = datetime.fromisoformat(
-        f"{curr.year}-{curr.month}-01 00:00:00.000"
+        f"{curr.year}-{curr.month:02d}-01 00:00:00.000"
     )
     end_timestamp = datetime.fromisoformat(
         f"{curr.year}-{curr.month}-{calendar.monthrange(curr.year, curr.month)[1]} 23:59:59.999"
