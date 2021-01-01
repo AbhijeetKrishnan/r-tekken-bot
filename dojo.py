@@ -584,7 +584,8 @@ def update_dojo_links(subreddit) -> None:
         if isinstance(widget, praw.models.TextArea):
             if "Useful Stuff" in widget.shortName:
                 curr_text = widget.text
-                new_text = curr_text.replace(old_permalink, new_permalink)
+                new_text = curr_text.replace(old_full_link, new_full_link)
+                logging.debug(f"New sidebar widget text: \n{new_text}")
                 widget.mod.update(text=new_text)
                 logging.info("Updated Useful Stuff sidebar link")
         elif isinstance(widget, praw.models.ImageWidget):
