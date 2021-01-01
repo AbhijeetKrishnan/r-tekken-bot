@@ -446,20 +446,20 @@ def dojo_leaderboard(subreddit, stream) -> None:
     # Find (year, month) to tally scores for
     curr = datetime.now()
     start_timestamp = datetime.fromisoformat(
-        f"{curr.year}-{curr.month}-01 00:00:00.000"
+        f"{curr.year}-{curr.month:02d}-01 00:00:00.000"
     )
     end_timestamp = datetime.fromisoformat(
-        f"{curr.year}-{curr.month}-{calendar.monthrange(curr.year, curr.month)[1]} 23:59:59.999"
+        f"{curr.year}-{curr.month:02d}-{calendar.monthrange(curr.year, curr.month)[1]} 23:59:59.999"
     )
     logging.debug(
         f"Finding scores for timestamp range [{start_timestamp}, {end_timestamp}]"
     )
-    logging.debug(f"Finding scores for {curr.year}-{curr.month}")
+    logging.debug(f"Finding scores for {curr.year}-{curr.month:02d}")
 
     leaders = tally_scores(start_timestamp, end_timestamp)
-    logging.info(f"Found leaders for {curr.year}-{curr.month}")
+    logging.info(f"Found leaders for {curr.year}-{curr.month:02d}")
     update_dojo_sidebar(subreddit, leaders, curr)
-    logging.info(f"Finished dojo leaderboard workflow for {curr.year}-{curr.month}")
+    logging.info(f"Finished dojo leaderboard workflow for {curr.year}-{curr.month:02d}")
 
 
 def dojo_award(reddit, subreddit) -> None:
@@ -483,22 +483,22 @@ def dojo_award(reddit, subreddit) -> None:
     # Find (year, month) to tally scores for
     curr = datetime.now() - timedelta(hours=24)  # get leaderboard for one day earlier.
     start_timestamp = datetime.fromisoformat(
-        f"{curr.year}-{curr.month}-01 00:00:00.000"
+        f"{curr.year}-{curr.month:02d}-01 00:00:00.000"
     )
     end_timestamp = datetime.fromisoformat(
-        f"{curr.year}-{curr.month}-{calendar.monthrange(curr.year, curr.month)[1]} 23:59:59.999"
+        f"{curr.year}-{curr.month:02d}-{calendar.monthrange(curr.year, curr.month)[1]} 23:59:59.999"
     )
 
     comment_urls = check_db_health(reddit, start_timestamp, end_timestamp)
 
-    logging.debug(f"Finding scores for {curr.year}-{curr.month}")
+    logging.debug(f"Finding scores for {curr.year}-{curr.month:02d}")
     curr += timedelta(hours=24)  # to ensure year/month is for the next month
     leaders = tally_scores(start_timestamp, end_timestamp)
 
     award_leader(subreddit, leaders, curr)
-    logging.info(f"Finished awarding leaders for {curr.year}-{curr.month}")
+    logging.info(f"Finished awarding leaders for {curr.year}-{curr.month:02d}")
     publish_wiki(subreddit, leaders, comment_urls, start_timestamp, end_timestamp)
-    logging.info(f"Finished publishing wiki for {curr.year}-{curr.month}")
+    logging.info(f"Finished publishing wiki for {curr.year}-{curr.month:02d}")
 
 
 def dojo_cleaner() -> None:
