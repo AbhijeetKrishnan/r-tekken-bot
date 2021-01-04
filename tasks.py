@@ -105,5 +105,5 @@ def update_events(subreddit) -> None:
         text += f"{title} | {dt.strftime('%a %b %e %I:%M %p')} | {location}\n"
         logging.debug(f"Adding event {title} {dt} {location}")
     text += "***\n"
-    text += f"^(Last updated: {time.ctime()} by u/tekken-bot)\n"
+    text += f"^(Last updated: {time.ctime()} UTC by u/tekken-bot)\n"
     redesign.update_sidebar_old(subreddit, "Upcoming Events", text)
