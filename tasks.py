@@ -3,6 +3,7 @@
 import itertools
 import logging
 from datetime import datetime, timedelta
+import time
 
 import praw
 import twitch
@@ -83,3 +84,26 @@ def update_livestream_widget(subreddit) -> None:
         text,
     )
     redesign.update_sidebar_old(subreddit, "Livestreams", text)
+
+
+def update_events(subreddit) -> None:
+    """
+    Update the Upcoming Events section of the sidebar on old Reddit
+    """
+
+    # get Calendar widget
+    for widget in subreddit.widgets.sidebar:
+        if widget.shortName == "Upcoming Events":
+            calendar = widget
+            logging.debug("Found Upcoming Events Calendar widget!")
+    text = "Name | Starts (UTC) | Location\n"
+    text += ":-- | :-: | :--\n"
+    for event in calendar.data:
+        title = event["title"]
+        dt = datetime.fromtimestamp(event["startTime"])
+        location = event["location"]
+        text += f"{title} | {dt.strftime('%a %b %e %I:%M %p')} | {location}\n"
+        logging.debug(f"Adding event {title} {dt} {location}")
+    text += "***\n"
+    text += f"^(Last updated: {time.ctime()} by u/tekken-bot)\n"
+    redesign.update_sidebar_old(subreddit, "Upcoming Events", text)

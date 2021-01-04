@@ -58,6 +58,7 @@ if __name__ == "__main__":
     schedule.every(60).seconds.do(
         dojo.dojo_leaderboard, subreddit=tekken, stream=tekken_comment_stream
     )
+    schedule.every(30).minutes.do(tasks.update_events, subreddit=tekken)
     schedule.every(1).day.at("00:00:00").do(dojo.dojo_award, reddit=r, subreddit=tekken)
     schedule.every(20).weeks.do(dojo.dojo_cleaner)
     schedule.every(4).weeks.do(dojo.update_dojo_links, subreddit=tekken)
