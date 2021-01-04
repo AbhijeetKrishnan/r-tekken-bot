@@ -16,10 +16,10 @@ MAX_STATUS_LENGTH = 20  # length of status allowed in livestream table
 MAX_NUM_STREAMS = 5  # number of streams displayed in livestream table
 
 
-def get_removal_reason_id(subreddit):
+def get_removal_reason(subreddit):
     for removal_reason in subreddit.mod.removal_reasons:
         if removal_reason.title == "Off-schedule shitpost":
-            return removal_reason.id
+            return removal_reason
 
 
 def delete_shitposts(subreddit, stream, flair_text=SHITPOST_FLAIR_TEXT, day=5):
@@ -57,7 +57,16 @@ def delete_shitposts(subreddit, stream, flair_text=SHITPOST_FLAIR_TEXT, day=5):
                 logging.info(
                     f"Deleting post: https://www.reddit.com{submission.permalink}"
                 )
-                submission.mod.remove(reason_id=get_removal_reason_id(subreddit))
+                logging.debug("Getting removal reason for shitpost deletion")
+                removal_reason = get_removal_reason(subreddit)
+                logging.debug(
+                    f"Removing post with removal reason id {removal_reason.id}"
+                )
+                submission.mod.remove(reason_id=removal_reason.id)
+                logging.debug(f"Sending removal message {removal_reason.message}")
+                submission.mod.send_removal_message(
+                    removal_reason.message, type="public"
+                )
             else:
                 logging.debug(f"Does not lie on {day}, no action")
 
