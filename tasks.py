@@ -22,7 +22,7 @@ def get_removal_reason_id(subreddit):
             return removal_reason.id
 
 
-def delete_shitposts(stream, flair_text=SHITPOST_FLAIR_TEXT, day=5):
+def delete_shitposts(subreddit, stream, flair_text=SHITPOST_FLAIR_TEXT, day=5):
     """
     Deletes all posts not posted on the scheduled day whose flair text is 'flair_text'.
 
@@ -32,10 +32,12 @@ def delete_shitposts(stream, flair_text=SHITPOST_FLAIR_TEXT, day=5):
     """
     if day not in range(1, 8):
         logging.warning(f"Invalid day of week ({day}). Setting day to Fri (5) instead.")
-        day = 7
+        day = 5
+    logging.debug(f"Deleting posts with flair: {flair_text}")
     while submission := next(stream):
+        logging.debug(submission.title)
         if submission.link_flair_text == flair_text:
-            logging.debug(submission.title)
+            logging.debug(f"Submission flair matches {flair_text}!")
             # Check timestamp if it is lies on the given day for all timezones in [-12:00, +14:00]
             timestamp = datetime.fromtimestamp(int(submission.created_utc))
             lies_on_day = False
@@ -47,13 +49,17 @@ def delete_shitposts(stream, flair_text=SHITPOST_FLAIR_TEXT, day=5):
                 delta = timedelta(hours=hours, minutes=mins)
                 new_dt = timestamp + delta
                 if new_dt.isoweekday() == day:
+                    logging.debug(f"Lies on {day} with delta {delta}")
                     lies_on_day = True
+                    break
             if not lies_on_day:
                 # delete post
                 logging.info(
                     f"Deleting post: https://www.reddit.com{submission.permalink}"
                 )
                 submission.mod.remove(reason_id=get_removal_reason_id(subreddit))
+            else:
+                logging.debug(f"Does not lie on {day}, no action")
 
 
 def update_livestream_widget(subreddit) -> None:
