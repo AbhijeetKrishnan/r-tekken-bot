@@ -56,12 +56,14 @@ if __name__ == "__main__":
         tasks.delete_shitposts, subreddit=tekken, stream=tekken_submission_stream, day=5
     )
     schedule.every(60).seconds.do(
-        dojo.dojo_leaderboard, subreddit=tekken, stream=tekken_comment_stream
+        tasks.dojo_leaderboard, subreddit=tekken, stream=tekken_comment_stream
     )
     schedule.every(30).minutes.do(tasks.update_events, subreddit=tekken)
-    schedule.every(1).day.at("00:00:00").do(dojo.dojo_award, reddit=r, subreddit=tekken)
-    schedule.every(20).weeks.do(dojo.dojo_cleaner)
-    schedule.every(4).weeks.do(dojo.update_dojo_links, subreddit=tekken)
+    schedule.every(1).day.at("00:00:00").do(
+        tasks.dojo_award, reddit=r, subreddit=tekken
+    )
+    schedule.every(20).weeks.do(tasks.dojo_cleaner)
+    schedule.every(4).weeks.do(tasks.update_dojo_links, subreddit=tekken)
 
     while True:
         schedule.run_pending()
