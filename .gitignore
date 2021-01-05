@@ -1,6 +1,8 @@
 .env
+*.json
 .vscode/
 praw.ini
+*.pickle
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
