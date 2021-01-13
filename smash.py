@@ -20,11 +20,13 @@ load_dotenv()
 auth_token = os.environ["SMASHGG"]
 gcal_id = os.environ["GCAL"]
 
-PER_PAGE = 999
+PER_PAGE = 499
 TEKKEN7_ID = 17
 
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
+
+logging.basicConfig(level=logging.INFO)
 
 
 def get_tournaments(
@@ -145,6 +147,19 @@ def add_to_gcal(
             pickle.dump(creds, token)
 
     service = build("calendar", "v3", credentials=creds)
+    now = datetime.utcnow().isoformat() + "Z"  # 'Z' indicates UTC time
+    cal_events_result = (
+        service.events()
+        .list(
+            calendarId=calendarId,
+            timeMin=now,
+            maxResults=None,
+            singleEvents=True,
+            orderBy="startTime",
+        )
+        .execute()
+    )
+    cal_events = cal_events_result.get("items", [])
     for tournament in tournaments:
         event = {
             "summary": f"[{tournament[0]}]({tournament[1]})",
@@ -158,11 +173,17 @@ def add_to_gcal(
                 "timeZone": "UTC",
             },
         }
-        if not tournament[4]:
+        if not tournament[4]:  # if stream doesn't exist, remove location param
             event.pop("location", None)
         logging.info(event)
-        event = service.events().insert(calendarId=calendarId, body=event).execute()
-        logging.info("Event created: %s" % (event.get("htmlLink")))
+        found = False
+        for cal_event in cal_events:
+            if event["summary"] == cal_event["summary"]:
+                found = True
+                break
+        if not found:
+            event = service.events().insert(calendarId=calendarId, body=event).execute()
+            logging.info("Event created: %s" % (tournament[0]))
 
 
 if __name__ == "__main__":
