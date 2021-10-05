@@ -330,23 +330,29 @@ def award_leader(subreddit, leaders, dt) -> None:
     # Remove dojo flair from previous leader
     for flair in subreddit.flair(limit=None):
         if flair["flair_css_class"] == "dojo-master":
+            previous_flair = flair["flair_text"].rsplit("|")[0]
+            if previous_flair = flair["flair_text"]: # prev flair could have been None
+                previous_flair = ''
             logging.info(
-                f'Setting flair of previous leader {flair["user"].name} to {flair["flair_text"].rsplit("|")[0]}'
+                f'Setting flair of previous leader {flair["user"].name} to {previous_flair}'
             )
             subreddit.flair.set(
                 flair["user"].name,
-                text=flair["flair_text"].rsplit("|")[0],
+                text=previous_flair,
                 css_class="mokujin",
             )
 
     # Set flair of leader(s)
     for rank, user, points in leaders:
         if rank == 1:
-            original_flair_text = next(subreddit.flair(user))["flair_text"].rstrip()
+            original_flair_text = next(subreddit.flair(user)).get("flair_text", "")
             logging.debug(
                 f"Original flair text obtained for {user} is '{original_flair_text}'"
             )
-            new_flair_text = f"{original_flair_text} | {dojo_flair_text}"
+            if original_flair_text is not None: # flair can be None
+                new_flair_text = f"{original_flair_text.rstrip()} | {dojo_flair_text}"
+            else:
+                new_flair_text = f"{dojo_flair_text}"
             subreddit.flair.set(
                 user, text=new_flair_text, flair_template_id=DOJO_MASTER_FLAIR_ID
             )
