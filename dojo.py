@@ -331,8 +331,8 @@ def award_leader(subreddit, leaders, dt) -> None:
     for flair in subreddit.flair(limit=None):
         if flair["flair_css_class"] == "dojo-master":
             previous_flair = flair["flair_text"].rsplit("|")[0]
-            if previous_flair = flair["flair_text"]: # prev flair could have been None
-                previous_flair = ''
+            if previous_flair == flair["flair_text"]:  # prev flair could have been None
+                previous_flair = ""
             logging.info(
                 f'Setting flair of previous leader {flair["user"].name} to {previous_flair}'
             )
@@ -349,7 +349,7 @@ def award_leader(subreddit, leaders, dt) -> None:
             logging.debug(
                 f"Original flair text obtained for {user} is '{original_flair_text}'"
             )
-            if original_flair_text is not None: # flair can be None
+            if original_flair_text is not None:  # flair can be None
                 new_flair_text = f"{original_flair_text.rstrip()} | {dojo_flair_text}"
             else:
                 new_flair_text = f"{dojo_flair_text}"
