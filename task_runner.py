@@ -1,4 +1,3 @@
-import datetime
 import logging
 import os
 import time
@@ -6,10 +5,7 @@ import time
 import praw
 import schedule
 
-import dojo
-import redesign
 import tasks
-import twitch
 
 r = None
 

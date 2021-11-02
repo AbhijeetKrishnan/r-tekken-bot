@@ -5,14 +5,10 @@ import logging
 import os
 import time
 import traceback
-from collections import defaultdict
-from datetime import datetime, timedelta
-from typing import List, Tuple, Dict
-import re
+from datetime import datetime
+from typing import Dict, List, Tuple
 
-import praw
 import psycopg2
-import schedule
 from psycopg2 import sql
 
 import redesign

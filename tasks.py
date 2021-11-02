@@ -3,7 +3,9 @@
 import calendar
 import itertools
 import logging
+import re
 import time
+import traceback
 from datetime import datetime, timedelta
 
 import praw
@@ -184,7 +186,7 @@ def dojo_award(reddit, subreddit) -> None:
 
     dojo.award_leader(subreddit, leaders, curr)
     logging.info(f"Finished awarding leaders for {curr.year}-{curr.month:02d}")
-    publish_wiki(subreddit, leaders, comment_urls, start_timestamp, end_timestamp)
+    dojo.publish_wiki(subreddit, leaders, comment_urls, start_timestamp, end_timestamp)
     logging.info(f"Finished publishing wiki for {curr.year}-{curr.month:02d}")
 
 
@@ -201,17 +203,17 @@ def dojo_cleaner() -> None:
     conn = dojo.connect_to_db()
     cur = conn.cursor()
 
-    cutoff = datetime.now() - timedelta(weeks=WEEK_BUFFER)
+    cutoff = datetime.now() - timedelta(weeks=dojo.WEEK_BUFFER)
 
     logging.debug(f"Deleting comments older than datetime {str(cutoff)}")
 
     cur.execute(
-        sql.SQL(
+        psycopg2.sql.SQL(
             """
     DELETE FROM {}
     WHERE created_utc < %s
     """.format(
-                sql.Identifier(TABLE_NAME)
+                psycopg2.sql.Identifier(dojo.TABLE_NAME)
             )
         ),
         (cutoff),
