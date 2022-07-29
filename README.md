@@ -11,7 +11,7 @@ Many thanks to [u/coronaria](https://www.reddit.com/user/coronaria) for pointing
 
 ## Guide to setting up and running tekken-bot on Heroku
 
-1. Clone this repository using and `cd` into it
+1. Clone this repository using the commands below and `cd` into it
 
     ```
     git clone https://github.com/AbhijeetKrishnan/r-tekken-bot.git
@@ -81,5 +81,6 @@ The code consists of the following files -
 - `task_runner.py`: the driver code that uses the `schedule` module to schedule all the necessary tasks
 - `dojo.py`: implements the dojo workflows of ingestion, award, and clean-up
 - `redesign.py`: updates the Livestream widget in the Reddit redesign
+- `smash.py`: updates the list of upcoming Tekken tournaments by pulling from smash.gg (TODO)
 - `tasks.py`: implements tasks which don't require a separate module
 - `twitch.py`: connects to the Twitch API and returns the list of live Tekken streamers
